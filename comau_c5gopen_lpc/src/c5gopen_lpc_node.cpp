@@ -1,4 +1,4 @@
-#include <comau_c5gopen_LPC/c5gopen_lpc_node.h>
+#include <comau_c5gopen_lpc/c5gopen_lpc_node.h>
 
 
 // int                         cycle_active            = 0;

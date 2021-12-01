@@ -57,7 +57,7 @@
 
 #include <eORL.h>
 
-#include <comau_c5gopen_LPC/realtime_buffer_utils.h>
+#include <comau_c5gopen_lpc/realtime_buffer_utils.h>
 
 #define EXTRN  extern
 
@@ -124,12 +124,12 @@ EXTRN realtime_buffer::circ_buffer<absolute_target_position_t> *absolute_target_
 struct UserThreadSharedStruct 
 {  
   int open_period_;
-  ros::NodeHandle *ptr_nh_;
+  //ros::NodeHandle *ptr_nh_;
   
-  UserThreadSharedStruct (  const int& open_period, 
-                            ros::NodeHandle *nh_ ) :
-                            open_period_( open_period ),
-                            ptr_nh_( nh_ ) 
+  UserThreadSharedStruct (  const int& open_period ) :
+                            //ros::NodeHandle *nh_ ) :
+                            open_period_( open_period )
+                            // ptr_nh_( nh_ ) 
   { 
     // nothing to do!
   };
@@ -146,8 +146,8 @@ void    decode_modality             ( const int si_modality, char* string, const
 double  digits_to_double            ( int16_t value, double min_value, double max_value ) ;
 bool    update_robot_status         ( bool verbose=false );
 int     initialize_control_position ( void );
-bool    set_frames                  ( ros::NodeHandle* nh_, ORL_cartesian_position* bFrame, ORL_cartesian_position* tFrame, ORL_cartesian_position* uFrame );
-bool    get_arms_config             ( ros::NodeHandle* nh_, int arms_active );
+//bool    set_frames                  ( ros::NodeHandle* nh_, ORL_cartesian_position* bFrame, ORL_cartesian_position* tFrame, ORL_cartesian_position* uFrame );
+//bool    get_arms_config             ( ros::NodeHandle* nh_, int arms_active );
 
 
 //****************************************************//
@@ -164,7 +164,7 @@ private:
   
   std::string           trj_namespace_;  
   
-  ros::NodeHandle*      ptr_nh_;
+  //ros::NodeHandle*      ptr_nh_;
   
   realtime_buffer::circ_buffer<delta_position_t>* delta_trg_cart_pos_;
   realtime_buffer::circ_buffer<absolute_target_position_t>* abs_target_pos_;
@@ -179,7 +179,7 @@ public:
   C5gopenTrjExec( const int&            idxArm,
                   const int&            open_period,
                   const std::string&    trj_namespace,
-                  ros::NodeHandle*      ptr_nh,
+                  //ros::NodeHandle*      ptr_nh,
                   realtime_buffer::circ_buffer<delta_position_t>* delta_trg_cart_pos,
                   realtime_buffer::circ_buffer<absolute_target_position_t>* abs_target_pos );
   
