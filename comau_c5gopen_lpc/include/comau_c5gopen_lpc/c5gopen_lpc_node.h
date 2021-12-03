@@ -55,7 +55,9 @@
 #include <boost/thread.hpp>
 #include <boost/circular_buffer.hpp>
 
-#include <eORL.h>
+#if defined(EORL_AVAILABLE)
+  #include <eORL.h>
+#endif
 
 #include <comau_c5gopen_lpc/realtime_buffer_utils.h>
 

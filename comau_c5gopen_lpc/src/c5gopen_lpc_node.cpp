@@ -1,3 +1,6 @@
+
+#include <cnr_logger/cnr_logger.h>
+
 #include <comau_c5gopen_lpc/c5gopen_lpc_node.h>
 
 
@@ -22,22 +25,28 @@
 // itia::butils::circ_buffer<absolute_target_position_t> *absolute_target_position[MAX_NUM_ARMS];
 // itia::butils::circ_buffer<absolute_target_position_t> *absolute_target_position_log[MAX_NUM_ARMS];
 
+// Create logger object
+std::shared_ptr<cnr_logger::TraceLogger> logger;
+
 int  main (int argc, char **argv)
 {
  
-  // int policy = 0;
-  // int min_prio_for_policy = 0;
+  int policy = 0;
+  int min_prio_for_policy = 0;
   
-  // policy = SCHED_OTHER;  //SCHED_RR, SCHED_FIFO, SCHED_OTHER (POSIX scheduling policies)
-  // min_prio_for_policy = sched_get_priority_min(policy);
+  policy = SCHED_OTHER;  //SCHED_RR, SCHED_FIFO, SCHED_OTHER (POSIX scheduling policies)
+  min_prio_for_policy = sched_get_priority_min(policy);
   
-  // struct sched_param main_thread_param;
+  struct sched_param main_thread_param;
   
-  // memset(&main_thread_param, 0x0, sizeof(sched_param));
-  // main_thread_param.sched_priority = min_prio_for_policy;
+  memset(&main_thread_param, 0x0, sizeof(sched_param));
+  main_thread_param.sched_priority = min_prio_for_policy;
     
-  // if ( pthread_setschedparam( pthread_self(), policy, &main_thread_param ) != 0 )
-  //   printf( " [ %s%s:%d%s ]\t %s ERROR in pthread_setschedparam() of main_thread_id%s \n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET);
+  logger.reset( new cnr_logger::TraceLogger ("log1", "/home/c5gopen/.c5gopen_log", true, false) ); 
+
+  if ( pthread_setschedparam( pthread_self(), policy, &main_thread_param ) != 0 )
+    //CNR_INFO (logger,"Ciao-log-1-info");
+    //printf( " [ %s%s:%d%s ]\t %s ERROR in pthread_setschedparam() of main_thread_id%s \n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET);
   
   
   // std::string STRING_IP_CNTRL;
