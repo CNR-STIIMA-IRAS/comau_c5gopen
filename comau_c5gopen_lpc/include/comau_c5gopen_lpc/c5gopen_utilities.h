@@ -32,12 +32,16 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
-#include <comau_c5gopen_lpc/communication_thread.h>
+
+#ifndef __C5GOPEN_UTILITIES__
+#define __C5GOPEN_UTILITIES__
+
+#include <eORL.h>
+
 namespace c5gopen
 {
-  void *comm_thread( void *shared_thread_data )
-  {
-    // TO BE DONE!!!!
-  }
+  bool set_frames( ORL_cartesian_position* bFrame, ORL_cartesian_position* tFrame, ORL_cartesian_position* uFrame );
+  int initialize_control_position ( void );
 }
 
+#endif

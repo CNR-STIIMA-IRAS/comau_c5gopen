@@ -33,11 +33,80 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <chrono>
+#include <thread>
+
+#include <eORL.h>
+
 #include <comau_c5gopen_lpc/c5gopen_thread.h>
+#include <comau_c5gopen_lpc/c5gopen_utilities.h>
+#include <comau_c5gopen_lpc/c5gopen_callback.h>
+
 namespace c5gopen
 {
   void *c5gopen_thread( void* shared_thread_data )
   {
+    C5GOpenThreadSharedStruct* ptr_shared_data = static_cast<C5GOpenThreadSharedStruct*>( shared_thread_data );
+  
+    if( ORLOPEN_initialize_controller ( ptr_shared_data->ip_ctrl_.c_str(), ptr_shared_data->sys_id_.c_str(), ORL_SILENT, ORL_CNTRL01) != ORLOPEN_RES_OK ) 
+    {
+      ORLOPEN_initialize_controller ( ptr_shared_data->ip_ctrl_.c_str(), ptr_shared_data->sys_id_.c_str(), ORL_VERBOSE, ORL_CNTRL01);
+      CNR_ERROR( *ptr_shared_data->logger_, "Error in ORL_initialize_controller " );
+      exit(0);
+    }
+    else 
+      CNR_INFO( *ptr_shared_data->logger_,  std::string(ptr_shared_data->ip_ctrl_) + ": " +
+                                            std::string(ptr_shared_data->sys_id_) + ".c5g OK" );
+        
+        
+    if ( ORLOPEN_set_period( ptr_shared_data->period_, ORL_SILENT, ORL_CNTRL01 ) != ORLOPEN_RES_OK )
+    {
+      ORLOPEN_set_period( ptr_shared_data->period_, ORL_VERBOSE, ORL_CNTRL01 );
+      CNR_ERROR( *ptr_shared_data->logger_, "Error in ORLOPEN_set_period" );
+      exit(0);
+    }
+    
+    ORL_cartesian_position bFrame, tFrame, uFrame;
+    if ( !set_frames( &bFrame, &tFrame, &uFrame ) )
+    {
+      CNR_ERROR( *ptr_shared_data->logger_, "Error cannot set frames." );
+      exit(0);
+    }
+    
+    if ( ORL_initialize_frames( bFrame, tFrame, uFrame, ORL_SILENT, ORL_CNTRL01, ORL_ARM1 ) != ORLOPEN_RES_OK )  
+    {
+      ORL_initialize_frames( bFrame, tFrame, uFrame, ORL_VERBOSE, ORL_CNTRL01, ORL_ARM1 );
+      CNR_ERROR(  *ptr_shared_data->logger_, "Error in ORL_initialize_frames." );
+      exit(0);
+    } 
+      
+    if ( ORLOPEN_SetCallBackFunction( &user_callback, ORL_SILENT, ORL_CNTRL01 ) < ORLOPEN_RES_OK )
+    {
+      ORLOPEN_SetCallBackFunction( &user_callback, ORL_VERBOSE, ORL_CNTRL01 );
+      CNR_ERROR( *ptr_shared_data->logger_, "Error in ORLOPEN_SetCallBackFunction.");
+      exit(0);
+    }
+    else
+      CNR_INFO( *ptr_shared_data->logger_, "User callback function initialized.");  
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    /******************** Start with C5Gopen control *******************/
+
+    if ( ORLOPEN_StartCommunication( ORL_SILENT ) != ORLOPEN_RES_OK )
+    {
+      ORLOPEN_StartCommunication( ORL_VERBOSE );
+      ORLOPEN_GetPowerlinkState( ORL_VERBOSE );
+      exit(0);
+    }
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        
+    if ( initialize_control_position() < 0 ) 
+    {
+      CNR_ERROR( *ptr_shared_data->logger_, "Error in initialize_control_position() function.");
+      exit(0);
+    }
 
   }
 }

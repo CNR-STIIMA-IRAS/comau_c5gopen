@@ -55,9 +55,7 @@
 #include <boost/thread.hpp>
 #include <boost/circular_buffer.hpp>
 
-#if defined(EORL_AVAILABLE)
-  #include <eORL.h>
-#endif
+#include <eORL.h>
 
 #include <comau_c5gopen_lpc/realtime_buffer_utils.h>
 
@@ -123,20 +121,7 @@ EXTRN realtime_buffer::circ_buffer<absolute_target_position_t> *absolute_target_
 EXTRN realtime_buffer::circ_buffer<absolute_target_position_t> *absolute_target_position_log[MAX_NUM_ARMS];
 
 
-struct UserThreadSharedStruct 
-{  
-  int open_period_;
-  //ros::NodeHandle *ptr_nh_;
-  
-  UserThreadSharedStruct (  const int& open_period ) :
-                            //ros::NodeHandle *nh_ ) :
-                            open_period_( open_period )
-                            // ptr_nh_( nh_ ) 
-  { 
-    // nothing to do!
-  };
-  
-};
+
 
 void   *loop_console_thread         ( void *shared_thread_data );
 void   *publisher_thread            ( void *shared_thread_data );

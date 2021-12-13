@@ -36,9 +36,31 @@
 #ifndef __C5GOPEN_THREAD__
 #define __C5GOPEN_THREAD__
 
+#include <cnr_logger/cnr_logger.h>
 namespace c5gopen
 {
+  struct C5GOpenThreadSharedStruct 
+  {  
+    int period_;
+    std::string ip_ctrl_;
+    std::string sys_id_;
+    std::shared_ptr<cnr_logger::TraceLogger> logger_;
+    
+    C5GOpenThreadSharedStruct ( const std::string& ip_ctrl,
+                                const std::string& sys_id,
+                                const int& period,
+                                const std::shared_ptr<cnr_logger::TraceLogger>& logger ) :
+                                ip_ctrl_(ip_ctrl),
+                                sys_id_(sys_id),  
+                                period_( period ),
+                                logger_(logger) 
+    { 
+      // nothing to do!
+    };
+    
+  };
+
   void   *c5gopen_thread( void *shared_thread_data );
-  
+
 }
 #endif

@@ -29,9 +29,14 @@ if(EXISTS "/opt/inc/eORL.h")
   message(WARNING "Cannot compile comau_c5gopen package because COMAU eORL is not installed")
 endif()
 
-add_executable(c5gopen_lpc_node src/c5gopen_lpc_node.cpp)
 
-if (EORL_ENABLE)
+if (EORL_ENABLED)
+  add_executable(c5gopen_lpc_node src/c5gopen_lpc_node.cpp
+                                  src/c5gopen_thread.cpp
+                                  src/c5gopen_callback.cpp
+                                  src/c5gopen_utilities.cpp
+                                  src/communication_thread.cpp)
+
   add_library(eorl SHARED IMPORTED)
   set_property(TARGET eorl PROPERTY IMPORTED_LOCATION /opt/lib/libeORL.so)
 
@@ -40,11 +45,6 @@ if (EORL_ENABLE)
                                           m 
                                           pthread 
                                           eorl )    
-else()
-  target_link_libraries(c5gopen_lpc_node  ${Boost_LIBRARIES} 
-                                          m 
-                                          pthread 
-                                          cnr_logger )    
 endif()
 
 

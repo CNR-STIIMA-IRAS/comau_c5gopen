@@ -1,0 +1,8 @@
+arms_config:
+  nArm: 1
+  activeArm: [1]  # [1, 2, 3, 4]
+
+robot_frames:
+  base_frame: { x: 0.0, y: 0.0, z: 0.0, a: 0.0, e: 0.0, r: 0.0 }
+  user_frame: { x: 0.0, y: 0.0, z: 0.0, a: 0.0, e: 0.0, r: 0.0 }
+  tool_frame: { x: 0.0, y: 0.0, z: 0.0, a: 0.0, e: 0.0, r: 0.0 }

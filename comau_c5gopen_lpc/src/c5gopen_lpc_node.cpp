@@ -39,9 +39,9 @@
 #include <comau_c5gopen_lpc/c5gopen_lpc_node.h>
 #include <comau_c5gopen_lpc/c5gopen_thread.h>
 
-// int                         cycle_active            = 0;
-// int                         mask_moving_arms        = 0;
-// bool                        system_initialized      = false;
+int                         cycle_active            = 0;
+int                         mask_moving_arms        = 0;
+bool                        system_initialized      = false;
 
 // bool                        first_arm_driveon             [MAX_NUM_ARMS] = {false};
 // bool                        flag_RunningMove              [MAX_NUM_ARMS] = {false};
@@ -75,7 +75,7 @@ int  main (int argc, char **argv)
   }
   else
   {
-    std::cout << "ERROR: wrong number of input to the c5gopen LPC node. The right order is: COMAU ROBOT IP, COMAU SYSTEM ID, LOGGER CONFIG PATH" << std::endl;
+    std::cout << cnr_logger::RED() <<  "ERROR: wrong number of input to the c5gopen LPC node. The right order is: COMAU ROBOT IP, COMAU SYSTEM ID, LOGGER CONFIG PATH" << cnr_logger::RESET() << std::endl;
     return -1;
   }
 
@@ -97,50 +97,50 @@ int  main (int argc, char **argv)
   main_thread_param.sched_priority = min_prio_for_policy;
     
   if ( pthread_setschedparam( pthread_self(), policy, &main_thread_param ) != 0 )
-    CNR_INFO (*logger,"");
+    CNR_ERROR ( *logger, "Error in pthread_setschedparam() of main_thread_id ");
 
   int period = ORL_0_4_MILLIS;
   
 
   // /******************** Start parallel thread *******************/ 
-  pthread_t  c5gopen_thread_id, communication_thread_id, loop_console_thread_id;
+  pthread_t  c5gopen_thread_id, com_thread_id, loop_console_thread_id;
   
+  struct sched_param c5gopen_thread_param, com_thread_param, loop_console_thread_param;
+ 
   try
   {
+    c5gopen::C5GOpenThreadSharedStruct shared_with_c5gopen_thread( STRING_IP_CNTRL,
+                                                                    STRING_SYS_ID,
+                                                                    period,
+                                                                    logger );
+     
+    // C5Gopen thread
+    CNR_INFO( *logger, "Entering in the C5Gopen thread"); 
+    int publisher_thread_rc = pthread_create ( &c5gopen_thread_id, 
+                                              NULL, 
+                                              c5gopen::c5gopen_thread, 
+                                              (void*) &shared_with_c5gopen_thread);
 
-    UserThreadSharedStruct shared_with_thread( period, &nh );
+    if ( publisher_thread_rc < 0 )
+      throw std::invalid_argument( "failed @ pthread_create(c5gopen_thread_rc)" );
     
-  //   struct sched_param loop_console_thread_param, publisher_thread_param;
+    memset(&c5gopen_thread_param, 0x0, sizeof(sched_param));
+    c5gopen_thread_param.sched_priority = min_prio_for_policy;
     
-  //   // Publisher thread
-  //   printf( " [ %s%s:%d%s ]\t entering in the publisher thread... \n", GREEN, __FUNCFILE__, __LINE__, RESET ); 
-  //   int publisher_thread_rc = pthread_create ( &publisher_thread_id, 
-  //                                               NULL, 
-  //                                               publisher_thread, 
-  //                                               (void*) &shared_with_thread);
+    if ( pthread_setschedparam( c5gopen_thread_id, policy, &c5gopen_thread_param ) != 0 )
+      CNR_ERROR( *logger, "Error in pthread_setschedparam() of c5gopen_thread");
 
-  //   if ( publisher_thread_rc  < 0 )
-  //     throw std::invalid_argument( " [ %s%s:%d%s ] failed @ pthread_create(publisher_thread_rc)" );
-    
-    
-  //   memset(&publisher_thread_param, 0x0, sizeof(sched_param));
-  //   publisher_thread_param.sched_priority = min_prio_for_policy;
-    
-  //   if ( pthread_setschedparam( publisher_thread_id, policy, &publisher_thread_param ) != 0 )
-  //     printf( " [ %s%s:%d%s ]\t %s ERROR in pthread_setschedparam() of publisher_thread_id%s \n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET);
-
-  //   pthread_setname_np( publisher_thread_id, "c5gopen_ext_publisher" );
-
+    pthread_setname_np( c5gopen_thread_id, "c5gopen_thread" );
 
   }
   catch ( std::invalid_argument& e )
   {
-    CNR_ERROR( "Invalid argument %s \n", e.what() );
+    CNR_ERROR( *logger, "Invalid argument " + std::string(e.what())  );
     return -1;
   }
   catch (...)
   {
-    CNR_ERROR( "Unhandled exception!\n");
+    CNR_ERROR( *logger, "Unhandled exception!");
     return -1;
   }
 

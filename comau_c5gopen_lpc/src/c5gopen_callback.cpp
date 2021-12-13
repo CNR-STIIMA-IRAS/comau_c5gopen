@@ -32,12 +32,16 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
-#include <comau_c5gopen_lpc/communication_thread.h>
+
+#include <comau_c5gopen_lpc/c5gopen_callback.h>
+
 namespace c5gopen
 {
-  void *comm_thread( void *shared_thread_data )
+  int user_callback ( int input ) 
   {
     // TO BE DONE!!!!
-  }
-}
 
+    return ORLOPEN_RES_OK;
+  }
+
+}
