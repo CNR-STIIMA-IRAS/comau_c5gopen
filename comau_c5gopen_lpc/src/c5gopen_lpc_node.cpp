@@ -1,9 +1,43 @@
+/*
+ *  Software License Agreement (New BSD License)
+ *
+ *  Copyright 2020 National Council of Research of Italy (CNR)
+ *
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the copyright holder(s) nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include <cnr_logger/cnr_logger.h>
 #include <cnr_logger/cnr_logger_macros.h>
 
 #include <comau_c5gopen_lpc/c5gopen_lpc_node.h>
-
+#include <comau_c5gopen_lpc/c5gopen_thread.h>
 
 // int                         cycle_active            = 0;
 // int                         mask_moving_arms        = 0;
@@ -29,15 +63,19 @@
 
 int  main (int argc, char **argv)
 {
-  
+  std::string STRING_IP_CNTRL;
+  std::string STRING_SYS_ID;
   std::string logger_cfg_name;
-  if( argc >= 2 && argc <= 3) 
+  
+  if( argc < 4) 
   {
-    logger_cfg_name = argv[1];    
+    STRING_IP_CNTRL = argv[1];
+    STRING_SYS_ID   = argv[2];
+    logger_cfg_name = argv[3];    
   }
   else
   {
-    std::cout << "ERROR: wrong number of input to the c5gopen LPC node" << std::endl;
+    std::cout << "ERROR: wrong number of input to the c5gopen LPC node. The right order is: COMAU ROBOT IP, COMAU SYSTEM ID, LOGGER CONFIG PATH" << std::endl;
     return -1;
   }
 
@@ -45,7 +83,7 @@ int  main (int argc, char **argv)
   std::shared_ptr<cnr_logger::TraceLogger> logger(new cnr_logger::TraceLogger("c5gopen", 
                                                                               logger_cfg_name, 
                                                                               true, 
-                                                                              false));  
+                                                                              true));  
  
   int policy = 0;
   int min_prio_for_policy = 0;
@@ -59,31 +97,60 @@ int  main (int argc, char **argv)
   main_thread_param.sched_priority = min_prio_for_policy;
     
   if ( pthread_setschedparam( pthread_self(), policy, &main_thread_param ) != 0 )
-    CNR_INFO (*logger,"Ciao-log-1-info");
+    CNR_INFO (*logger,"");
 
+  int period = ORL_0_4_MILLIS;
   
-  // std::string STRING_IP_CNTRL;
-  // std::string STRING_SYS_ID;
+
+  // /******************** Start parallel thread *******************/ 
+  pthread_t  c5gopen_thread_id, communication_thread_id, loop_console_thread_id;
   
-  // if (argc < 3)
-  // {
-  //   printf( " [ %s%s:%d%s ]\t %s ERROR: invalid input argument!%s \n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET);
-  //   return -1;
-  // } 
-  // else
-  // {
-  //   STRING_IP_CNTRL = argv[1];
-  //   STRING_SYS_ID   = argv[2];
-  //   printf( " [ %s%s:%d%s ]\t Connection to %s: %s.c5g\n", GREEN, __FUNCFILE__, __LINE__, RESET, STRING_IP_CNTRL.c_str(), STRING_SYS_ID.c_str() );
-  // }
-  
-  // ros::init( argc, argv, "c5gopen_controller_node" );
-  // ros::NodeHandle nh;
-  
-  // ros::Rate loop_rate(100);
-        
-  // int period = ORL_0_4_MILLIS;
-  
+  try
+  {
+
+    UserThreadSharedStruct shared_with_thread( period, &nh );
+    
+  //   struct sched_param loop_console_thread_param, publisher_thread_param;
+    
+  //   // Publisher thread
+  //   printf( " [ %s%s:%d%s ]\t entering in the publisher thread... \n", GREEN, __FUNCFILE__, __LINE__, RESET ); 
+  //   int publisher_thread_rc = pthread_create ( &publisher_thread_id, 
+  //                                               NULL, 
+  //                                               publisher_thread, 
+  //                                               (void*) &shared_with_thread);
+
+  //   if ( publisher_thread_rc  < 0 )
+  //     throw std::invalid_argument( " [ %s%s:%d%s ] failed @ pthread_create(publisher_thread_rc)" );
+    
+    
+  //   memset(&publisher_thread_param, 0x0, sizeof(sched_param));
+  //   publisher_thread_param.sched_priority = min_prio_for_policy;
+    
+  //   if ( pthread_setschedparam( publisher_thread_id, policy, &publisher_thread_param ) != 0 )
+  //     printf( " [ %s%s:%d%s ]\t %s ERROR in pthread_setschedparam() of publisher_thread_id%s \n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET);
+
+  //   pthread_setname_np( publisher_thread_id, "c5gopen_ext_publisher" );
+
+
+  }
+  catch ( std::invalid_argument& e )
+  {
+    CNR_ERROR( "Invalid argument %s \n", e.what() );
+    return -1;
+  }
+  catch (...)
+  {
+    CNR_ERROR( "Unhandled exception!\n");
+    return -1;
+  }
+
+
+
+
+
+
+
+  /////////////////////////////
   // cycle_active = true;
   // printf("CYCLE Enabled\n");
   
