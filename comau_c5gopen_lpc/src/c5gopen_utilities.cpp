@@ -140,4 +140,33 @@ namespace c5gopen
     return 0;
 }
 
+//****************************************************// 
+
+void decode_modality( const int si_modality_, char* string, const bool verbose )
+{
+  switch(si_modality_)
+  {
+  case CRCOPEN_LISTEN:
+    sprintf(string,"CRCOPEN_LISTEN");
+    break;
+  case CRCOPEN_POS_ABSOLUTE:
+    sprintf(string,"CRCOPEN_POS_ABSOLUTE");
+    break;
+  case CRCOPEN_POS_RELATIVE:
+    sprintf(string,"CRCOPEN_POS_RELATIVE");
+    break;
+  case CRCOPEN_POS_ADDITIVE:
+    sprintf(string,"CRCOPEN_POS_ADDITIVE");
+    break;
+  case CRCOPEN_POS_ADDITIVE_SB:
+    sprintf(string,"CRCOPEN_POS_ADDITIVE_SB");
+    break;
+  case CRCOPEN_POS_ADDITIVE_SBE:
+    sprintf(string,"CRCOPEN_POS_ADDITIVE_SBE");
+    break;
+  default:
+    sprintf(string,"--");
+    break;
+  }
+  
 }

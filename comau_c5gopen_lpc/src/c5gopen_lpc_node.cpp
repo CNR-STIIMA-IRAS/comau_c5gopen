@@ -63,15 +63,15 @@ bool                        system_initialized      = false;
 
 int  main (int argc, char **argv)
 {
-  std::string STRING_IP_CNTRL;
-  std::string STRING_SYS_ID;
+  std::string ip_ctrl;
+  std::string sys_id;
   std::string logger_cfg_name;
   
-  if( argc < 4) 
+  if( argc < 5) 
   {
-    STRING_IP_CNTRL = argv[1];
-    STRING_SYS_ID   = argv[2];
-    logger_cfg_name = argv[3];    
+    ip_ctrl = std::string(argv[1]);
+    sys_id  = std::string(argv[2]);
+    logger_cfg_name = std::string(argv[3]);    
   }
   else
   {
@@ -85,6 +85,8 @@ int  main (int argc, char **argv)
                                                                               true, 
                                                                               true));  
  
+  bool c5gopen_active = true;
+
   int policy = 0;
   int min_prio_for_policy = 0;
   
@@ -109,21 +111,35 @@ int  main (int argc, char **argv)
  
   try
   {
-    c5gopen::C5GOpenThreadSharedStruct shared_with_c5gopen_thread( STRING_IP_CNTRL,
-                                                                    STRING_SYS_ID,
-                                                                    period,
-                                                                    logger );
-     
+    /******************** Loop console thread *******************/
+
+
+
+    /******************** Communication thread *******************/
+
+
+
+    /******************** C5GOPEN thread *******************/
+    
+    c5gopen::C5GOpenThreadSharedStruct shared_with_c5gopen_thread;
+    
+    shared_with_c5gopen_thread.period = period;
+    shared_with_c5gopen_thread.c5gopen_active = c5gopen_active;
+    strcpy(shared_with_c5gopen_thread.ip_ctrl, ip_ctrl.c_str());
+    strcpy(shared_with_c5gopen_thread.sys_id, sys_id.c_str());
+    shared_with_c5gopen_thread.logger = logger;
+
     // C5Gopen thread
-    CNR_INFO( *logger, "Entering in the C5Gopen thread"); 
-    int publisher_thread_rc = pthread_create ( &c5gopen_thread_id, 
+    CNR_INFO( *logger, "Creating the C5Gopen thread"); 
+    int c5gopen_thread_rc = pthread_create (&c5gopen_thread_id, 
                                               NULL, 
                                               c5gopen::c5gopen_thread, 
                                               (void*) &shared_with_c5gopen_thread);
 
-    if ( publisher_thread_rc < 0 )
+    if ( c5gopen_thread_rc < 0 )
       throw std::invalid_argument( "failed @ pthread_create(c5gopen_thread_rc)" );
     
+
     memset(&c5gopen_thread_param, 0x0, sizeof(sched_param));
     c5gopen_thread_param.sched_priority = min_prio_for_policy;
     
@@ -131,6 +147,8 @@ int  main (int argc, char **argv)
       CNR_ERROR( *logger, "Error in pthread_setschedparam() of c5gopen_thread");
 
     pthread_setname_np( c5gopen_thread_id, "c5gopen_thread" );
+
+
 
   }
   catch ( std::invalid_argument& e )
@@ -144,9 +162,10 @@ int  main (int argc, char **argv)
     return -1;
   }
 
-
-
-
+  while( c5gopen_active )
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
 
 
 
@@ -366,10 +385,10 @@ int  main (int argc, char **argv)
   
   // delete [] c5gopen_exec;
 
-  // pthread_cancel(publisher_thread_id);  
-  // pthread_cancel(loop_console_thread_id);
+  //pthread_cancel(publisher_thread_id);  
+  pthread_cancel(loop_console_thread_id);
 
-  // ros::Duration(1).sleep();
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   
   return 0;
 }
