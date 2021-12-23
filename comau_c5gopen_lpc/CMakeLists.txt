@@ -7,6 +7,17 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -pg -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 ")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--copy-dt-needed-entries")
 
+
+execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(-- " Kernel version: " ${UNAME_RESULT})
+if(UNAME_RESULT MATCHES "^([^rt]*)rt")
+  message(-- " using realtime")
+  set(PREEMPTIVE_RT ON CACHE BOOL "Compile library for preemptive machines")
+else()
+  message(-- " using NO realtime")
+  set(PREEMPTIVE_RT OFF CACHE BOOL "Compile library for NON preemptive machines")
+endif()
+
 add_definitions(-DROS_NOT_AVAILABLE) #Enrico 10/12/2021 this precompiler directive should be defined in the libcnr_logger.so but it is not visible in the main program
 
 find_package( Boost REQUIRED COMPONENTS system filesystem )
@@ -30,12 +41,17 @@ if(EXISTS "/opt/inc/eORL.h")
 endif()
 
 
+if(PREEMPTIVE_RT)
+  message(-- " setting PREEMPTIVE_RT definition")
+  add_definitions(-DPREEMPTIVE_RT)
+endif()
+
+
 if (EORL_ENABLED)
   add_executable(c5gopen_lpc_node src/c5gopen_lpc_node.cpp
-                                  src/c5gopen_thread.cpp
-                                  src/c5gopen_callback.cpp
+                                  src/c5gopen_driver.cpp
                                   src/c5gopen_utilities.cpp
-                                  src/communication_thread.cpp)
+                                  src/realtime_utilities.cpp)
 
   add_library(eorl SHARED IMPORTED)
   set_property(TARGET eorl PROPERTY IMPORTED_LOCATION /opt/lib/libeORL.so)

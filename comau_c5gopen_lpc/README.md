@@ -17,6 +17,8 @@ The current package is developed and tested with the eORL version 2.42.7.
 - sudo ./c5gopen_lpc_node
 
 
-
 # Dependencies
 - Boost
+
+# WARNING
+ This package is under heavy development huge changes can happen.

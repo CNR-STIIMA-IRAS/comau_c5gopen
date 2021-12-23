@@ -33,6 +33,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <math.h>
+#include <stdio.h>
+
 #include <comau_c5gopen_lpc/c5gopen_utilities.h>
 
 namespace c5gopen
@@ -138,35 +141,68 @@ namespace c5gopen
     //   return 1;
     
     return 0;
-}
-
-//****************************************************// 
-
-void decode_modality( const int si_modality_, char* string, const bool verbose )
-{
-  switch(si_modality_)
-  {
-  case CRCOPEN_LISTEN:
-    sprintf(string,"CRCOPEN_LISTEN");
-    break;
-  case CRCOPEN_POS_ABSOLUTE:
-    sprintf(string,"CRCOPEN_POS_ABSOLUTE");
-    break;
-  case CRCOPEN_POS_RELATIVE:
-    sprintf(string,"CRCOPEN_POS_RELATIVE");
-    break;
-  case CRCOPEN_POS_ADDITIVE:
-    sprintf(string,"CRCOPEN_POS_ADDITIVE");
-    break;
-  case CRCOPEN_POS_ADDITIVE_SB:
-    sprintf(string,"CRCOPEN_POS_ADDITIVE_SB");
-    break;
-  case CRCOPEN_POS_ADDITIVE_SBE:
-    sprintf(string,"CRCOPEN_POS_ADDITIVE_SBE");
-    break;
-  default:
-    sprintf(string,"--");
-    break;
   }
-  
+
+  //****************************************************// 
+
+  void decode_modality( const int& si_modality, char* string, const bool verbose )
+  {
+    switch(si_modality)
+    {
+    case CRCOPEN_LISTEN:
+      sprintf(string,"CRCOPEN_LISTEN");
+      break;
+    case CRCOPEN_POS_ABSOLUTE:
+      sprintf(string,"CRCOPEN_POS_ABSOLUTE");
+      break;
+    case CRCOPEN_POS_RELATIVE:
+      sprintf(string,"CRCOPEN_POS_RELATIVE");
+      break;
+    case CRCOPEN_POS_ADDITIVE:
+      sprintf(string,"CRCOPEN_POS_ADDITIVE");
+      break;
+    case CRCOPEN_POS_ADDITIVE_SB:
+      sprintf(string,"CRCOPEN_POS_ADDITIVE_SB");
+      break;
+    case CRCOPEN_POS_ADDITIVE_SBE:
+      sprintf(string,"CRCOPEN_POS_ADDITIVE_SBE");
+      break;
+    default:
+      sprintf(string,"--");
+      break;
+    }
+  }
+
+  double get_c5gopen_period_in_usec( const int& c5gopen_period )
+  {
+    double period;
+    switch(c5gopen_period)
+    {
+      case ORL_0_4_MILLIS:
+        period = 400.0;
+        break;
+      case ORL_2_0_MILLIS:
+        period = 2000.0;
+        break;
+      case ORL_4_0_MILLIS:
+        period = 4000.0;
+        break;
+      case ORL_8_0_MILLIS:
+        period = 8000.0;
+        break;
+      case ORL_16_0_MILLIS:
+        period = 16000.0;
+        break;
+      default:
+        period = 0.0;
+        break;
+      }
+    return period;
+  }
+
+  double get_c5gopen_period_in_nsec( const int& c5gopen_period )
+  {
+     double period = get_c5gopen_period_in_usec(c5gopen_period) * pow(10.0,3.0);
+  }
+
 }

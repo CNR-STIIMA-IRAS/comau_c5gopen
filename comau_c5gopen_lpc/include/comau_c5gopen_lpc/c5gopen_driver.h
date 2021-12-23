@@ -36,28 +36,164 @@
 #ifndef __C5GOPEN_LPC_NODE__
 #define __C5GOPEN_LPC_NODE__
 
-//#include <map>
-//#include <math.h>
-//#include <mutex>
 #include <string>
 #include <vector>
-//#include <fstream>
-//#include <sstream>
-//#include <stdio.h>
+
 #include <sched.h>
 #include <stdlib.h>
-//#include <stdarg.h>
-//#include <unistd.h>
-#include <pthread.h>
-//#include <functional>
-//#include <sys/time.h>
-//#include <sys/resource.h>
-#include <boost/thread.hpp>
+
+#include <thread>
 #include <boost/circular_buffer.hpp>
 
 #include <eORL.h>
 
+#include <cnr_logger/cnr_logger.h>
+#include <cnr_logger/cnr_logger_macros.h>
+
 #include <comau_c5gopen_lpc/realtime_buffer_utils.h>
+
+namespace c5gopen
+{
+  class CallbackBase;
+  template<int context> class DynamicCallback;
+  typedef int (*CF)(int);
+
+  extern CallbackBase* AvailableCallbackSlots[1];
+
+  class C5GOpenDriver 
+  {
+  public:
+    C5GOpenDriver(const std::string& ip_ctrl, const std::string& sys_id,
+                  const int& c5gopen_period, std::shared_ptr<cnr_logger::TraceLogger>& logger ); 
+
+    ~C5GOpenDriver();
+
+    bool init();
+    bool run();
+    bool getThreadsStatus();
+    int c5gopen_callback( int input );
+
+    typedef int (C5GOpenDriver::*CF)(int);
+    
+  private:
+
+    bool threads_status_;
+    bool c5gopen_active_;
+
+    int c5gopen_period_; // in microseconds
+
+    std::string ip_ctrl_;
+    std::string sys_id_;
+
+    std::thread c5gopen_thread_; 
+    std::thread com_thread_; 
+    std::thread loop_console_thread_;
+    std::shared_ptr<cnr_logger::TraceLogger> logger_;
+
+    void c5gopen_thread( );
+    void com_thread( );
+    void loop_console_thread( );
+
+  };
+
+
+  class CallbackBase
+  {
+  public:
+    // input: pointer to a unique C callback. 
+    CallbackBase(CF pCCallback) : 
+    m_pClass( NULL ),m_pMethod( NULL ),m_pCCallback( pCCallback )
+    {
+    }
+    void Free()
+    {
+      m_pClass = NULL;
+    }
+
+    CF Reserve(C5GOpenDriver* instance, C5GOpenDriver::CF method)
+    { 
+      if( m_pClass )
+          return NULL;
+
+      m_pClass = instance;
+      m_pMethod = method;
+      return m_pCCallback;
+    }
+  protected:
+    static int StaticInvoke(int context_template, int int_comau)
+    {
+        return ((AvailableCallbackSlots[context_template]->m_pClass)->*(AvailableCallbackSlots[context_template]->m_pMethod)) (int_comau);
+    }
+      
+  private:
+    CF m_pCCallback;
+    C5GOpenDriver* m_pClass;
+    C5GOpenDriver::CF m_pMethod;
+  };
+
+
+  template <int context_template> class DynamicCallback : public CallbackBase
+  {
+  public:
+    DynamicCallback(): CallbackBase(&DynamicCallback<context_template>::GeneratedStaticFunction) { }
+
+  private:
+    static int GeneratedStaticFunction  (int int_comau)
+    {
+        return StaticInvoke(context_template , int_comau);
+    }
+  };
+
+  class MemberFunctionCallback
+  {
+  public:
+      
+    operator CF() const
+    {
+        return m_cbCallback;
+    }
+
+    bool IsValid() const
+    {
+        return m_cbCallback != NULL;
+    }
+    
+    MemberFunctionCallback(C5GOpenDriver* instance, C5GOpenDriver::CF method)
+    {
+      int imax = sizeof(AvailableCallbackSlots)/sizeof(AvailableCallbackSlots[0]);
+      for( m_nAllocIndex = 0; m_nAllocIndex < imax; ++m_nAllocIndex )
+      {
+        m_cbCallback = AvailableCallbackSlots[m_nAllocIndex]->Reserve(instance, method);
+        if( m_cbCallback != NULL )
+          break;
+      }
+    }
+    ~MemberFunctionCallback()
+    {
+      if( IsValid() )
+      {
+        AvailableCallbackSlots[m_nAllocIndex]->Free();
+      }
+    }
+
+  private:
+    CF m_cbCallback;
+    int m_nAllocIndex;
+
+  private:
+  //     MemberFunctionCallback( const MemberFunctionCallback& os );
+  //     MemberFunctionCallback& operator=( const MemberFunctionCallback& os );
+  };
+
+} // end of namespace c5gopen
+
+
+
+
+
+
+/////////////////////////////// OLD ////////////////////////////
+
 
 // #define EXTRN  extern
 
