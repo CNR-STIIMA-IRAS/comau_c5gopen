@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(comau_c5gopen_lpc)
 
 set(CMAKE_CXX_FLAGS "-std=c++11")
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -pg -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 ")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--copy-dt-needed-entries")
@@ -51,7 +51,8 @@ if (EORL_ENABLED)
   add_executable(c5gopen_lpc_node src/c5gopen_lpc_node.cpp
                                   src/c5gopen_driver.cpp
                                   src/c5gopen_utilities.cpp
-                                  src/realtime_utilities.cpp)
+                                  src/realtime_utilities.cpp
+                                  src/c5gopen_dynamic_callbacks.cpp)
 
   add_library(eorl SHARED IMPORTED)
   set_property(TARGET eorl PROPERTY IMPORTED_LOCATION /opt/lib/libeORL.so)

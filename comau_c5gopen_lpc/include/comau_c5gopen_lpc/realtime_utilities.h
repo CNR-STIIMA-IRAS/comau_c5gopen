@@ -148,7 +148,7 @@ namespace realtime_utilities
 
     if (!setprio(prio, sched))
     {
-      printf("Error in setprio.");
+      printf("Error in setprio.\n");
       return false;
     }
 
@@ -159,12 +159,6 @@ namespace realtime_utilities
     show_new_pagefault_count("Caused by creating thread", ">=0", ">=0");
     prove_thread_stack_use_is_safe(stack_size);
   #endif
-
-    if (pinfo != NULL)
-    {
-      assert(period_ns > 0);
-      timer_periodic_init(pinfo, period_ns);
-    }
 
     return true;
 }

@@ -54,15 +54,12 @@
 
 namespace c5gopen
 {
-  class CallbackBase;
-  template<int context> class DynamicCallback;
-  typedef int (*CF)(int);
 
-  extern CallbackBase* AvailableCallbackSlots[1];
-
-  class C5GOpenDriver 
+   
+  class C5GOpenDriver: public std::enable_shared_from_this<c5gopen::C5GOpenDriver>
   {
   public:
+    typedef std::shared_ptr<C5GOpenDriver> Ptr;
     C5GOpenDriver(const std::string& ip_ctrl, const std::string& sys_id,
                   const int& c5gopen_period, std::shared_ptr<cnr_logger::TraceLogger>& logger ); 
 
@@ -71,7 +68,7 @@ namespace c5gopen
     bool init();
     bool run();
     bool getThreadsStatus();
-    int c5gopen_callback( int input );
+    friend int c5gopen_callback( int input );
 
     typedef int (C5GOpenDriver::*CF)(int);
     
@@ -81,6 +78,7 @@ namespace c5gopen
     bool c5gopen_active_;
 
     int c5gopen_period_; // in microseconds
+    size_t c5gopen_cnt = 0;
 
     std::string ip_ctrl_;
     std::string sys_id_;
@@ -96,94 +94,11 @@ namespace c5gopen
 
   };
 
+  int c5gopen_callback( int input );
 
-  class CallbackBase
-  {
-  public:
-    // input: pointer to a unique C callback. 
-    CallbackBase(CF pCCallback) : 
-    m_pClass( NULL ),m_pMethod( NULL ),m_pCCallback( pCCallback )
-    {
-    }
-    void Free()
-    {
-      m_pClass = NULL;
-    }
+  typedef C5GOpenDriver::Ptr C5GOpenDriverPtr;
 
-    CF Reserve(C5GOpenDriver* instance, C5GOpenDriver::CF method)
-    { 
-      if( m_pClass )
-          return NULL;
-
-      m_pClass = instance;
-      m_pMethod = method;
-      return m_pCCallback;
-    }
-  protected:
-    static int StaticInvoke(int context_template, int int_comau)
-    {
-        return ((AvailableCallbackSlots[context_template]->m_pClass)->*(AvailableCallbackSlots[context_template]->m_pMethod)) (int_comau);
-    }
-      
-  private:
-    CF m_pCCallback;
-    C5GOpenDriver* m_pClass;
-    C5GOpenDriver::CF m_pMethod;
-  };
-
-
-  template <int context_template> class DynamicCallback : public CallbackBase
-  {
-  public:
-    DynamicCallback(): CallbackBase(&DynamicCallback<context_template>::GeneratedStaticFunction) { }
-
-  private:
-    static int GeneratedStaticFunction  (int int_comau)
-    {
-        return StaticInvoke(context_template , int_comau);
-    }
-  };
-
-  class MemberFunctionCallback
-  {
-  public:
-      
-    operator CF() const
-    {
-        return m_cbCallback;
-    }
-
-    bool IsValid() const
-    {
-        return m_cbCallback != NULL;
-    }
-    
-    MemberFunctionCallback(C5GOpenDriver* instance, C5GOpenDriver::CF method)
-    {
-      int imax = sizeof(AvailableCallbackSlots)/sizeof(AvailableCallbackSlots[0]);
-      for( m_nAllocIndex = 0; m_nAllocIndex < imax; ++m_nAllocIndex )
-      {
-        m_cbCallback = AvailableCallbackSlots[m_nAllocIndex]->Reserve(instance, method);
-        if( m_cbCallback != NULL )
-          break;
-      }
-    }
-    ~MemberFunctionCallback()
-    {
-      if( IsValid() )
-      {
-        AvailableCallbackSlots[m_nAllocIndex]->Free();
-      }
-    }
-
-  private:
-    CF m_cbCallback;
-    int m_nAllocIndex;
-
-  private:
-  //     MemberFunctionCallback( const MemberFunctionCallback& os );
-  //     MemberFunctionCallback& operator=( const MemberFunctionCallback& os );
-  };
+  void init_driver_library(C5GOpenDriver* c5gopen_driver);
 
 } // end of namespace c5gopen
 

@@ -47,9 +47,16 @@
 #include <comau_c5gopen_lpc/c5gopen_utilities.h>
 #include <comau_c5gopen_lpc/realtime_utilities.h>
 #include <comau_c5gopen_lpc/c5gopen_driver.h>
+#include <comau_c5gopen_lpc/c5gopen_dynamic_callbacks.h>
 
 namespace c5gopen
 {
+  C5GOpenDriver* g_driver;
+
+  void init_driver_library(C5GOpenDriver* c5gopen_driver){
+    g_driver = c5gopen_driver;
+  }
+
   C5GOpenDriver::C5GOpenDriver( const std::string& ip_ctrl, const std::string& sys_id,
                                 const int& c5gopen_period, std::shared_ptr<cnr_logger::TraceLogger>& logger ): 
                                 ip_ctrl_(ip_ctrl), sys_id_(sys_id), c5gopen_period_(c5gopen_period), logger_(logger)
@@ -65,9 +72,11 @@ namespace c5gopen
 
   bool C5GOpenDriver::init( )
   {
-    //c5gopen_thread_ = std::thread(&c5gopen::C5GOpenDriver::c5gopen_thread); 
-    //com_thread_ = std::thread(&c5gopen::C5GOpenDriver::com_thread); 
-    //loop_console_thread_ = std::thread(&c5gopen::C5GOpenDriver::loop_console_thread);
+    init_driver_library(this);
+    c5gopen_thread_ = std::thread(&c5gopen::C5GOpenDriver::c5gopen_thread, this); 
+    com_thread_ = std::thread(&c5gopen::C5GOpenDriver::com_thread, this); 
+    loop_console_thread_ = std::thread(&c5gopen::C5GOpenDriver::loop_console_thread, this);
+
 
     // something else to be done here
 
@@ -95,7 +104,7 @@ namespace c5gopen
   {
 #if PREEMPTIVE_RT
     realtime_utilities::period_info  pinfo;
-    if(!realtime_utilities::rt_init_thread(RT_STACK_SIZE, sched_get_priority_max(SCHED_OTHER)-2, SCHED_OTHER, &pinfo, (long)get_c5gopen_period_in_nsec(c5gopen_period_)) )
+    if(!realtime_utilities::rt_init_thread(RT_STACK_SIZE, sched_get_priority_max(SCHED_OTHER), SCHED_OTHER, &pinfo, (long)get_c5gopen_period_in_nsec(c5gopen_period_)) )
     {
       CNR_ERROR( *logger_, "Failed in setting thread rt properties. Exit. ");
       std::raise(SIGINT);
@@ -103,7 +112,7 @@ namespace c5gopen
     }
 #endif
 
-    CNR_INFO(*logger_, "C5Gopen theread started. ");
+    CNR_INFO( *logger_, "C5Gopen thread started. " );
 
     if( ORLOPEN_initialize_controller ( ip_ctrl_.c_str(), sys_id_.c_str(), ORL_SILENT, ORL_CNTRL01) != ORLOPEN_RES_OK )
     {
@@ -134,15 +143,18 @@ namespace c5gopen
       CNR_ERROR(  *logger_, "Error in ORL_initialize_frames." );
       exit(0);
     } 
-      
-    // if ( ORLOPEN_SetCallBackFunction( &c5gopen::C5GOpenDriver::c5gopen_callback, ORL_SILENT, ORL_CNTRL01 ) < ORLOPEN_RES_OK )
-    // {
-    //   ORLOPEN_SetCallBackFunction( &c5gopen::C5GOpenDriver::c5gopen_callback, ORL_VERBOSE, ORL_CNTRL01 );
-    //   CNR_ERROR( *logger_, "Error in ORLOPEN_SetCallBackFunction.");
-    //   exit(0);
-    // }
-    // else
-    //   CNR_INFO( *logger_, "User callback function initialized.");  
+
+    ORLOPEN_callback callback_comau; 
+   // callback_comau = MemberFunctionCallback(this, &c5gopen::C5GOpenDriver::c5gopen_callback);
+
+    if ( ORLOPEN_SetCallBackFunction( c5gopen_callback, ORL_SILENT, ORL_CNTRL01 ) < ORLOPEN_RES_OK )
+    {
+      ORLOPEN_SetCallBackFunction( c5gopen_callback, ORL_VERBOSE, ORL_CNTRL01 );
+      CNR_ERROR( *logger_, "Error in ORLOPEN_SetCallBackFunction.");
+      exit(0);
+    }
+    else
+      CNR_INFO( *logger_, "User callback function initialized.");  
     
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -168,7 +180,8 @@ namespace c5gopen
     // Enter in the infinite loop
     while (c5gopen_active_)
     {
-      std::this_thread::sleep_for(std::chrono::microseconds(400)); // need to use varibale to set sleep_for function
+      CNR_INFO(*logger_, "c5gopen callback cnt " << c5gopen_cnt );
+      std::this_thread::sleep_for(std::chrono::microseconds(1000)); // need to use varibale to set sleep_for function
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -193,9 +206,10 @@ namespace c5gopen
   }
 
 
-  int C5GOpenDriver::c5gopen_callback ( int input ) 
+  int c5gopen_callback ( int input ) 
   {
-    CNR_ERROR(*logger_, "c5gopen callback");
+    g_driver->c5gopen_cnt++;
+
 
     // static bool first_entry = false;
     // if( 0 )

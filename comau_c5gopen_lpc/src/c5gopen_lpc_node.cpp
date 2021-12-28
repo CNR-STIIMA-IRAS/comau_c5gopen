@@ -37,8 +37,7 @@
 #include <cnr_logger/cnr_logger_macros.h>
 
 #include <comau_c5gopen_lpc/c5gopen_driver.h>
-
-c5gopen::CallbackBase* c5gopen::AvailableCallbackSlots[1];
+#include <comau_c5gopen_lpc/c5gopen_dynamic_callbacks.h>
 
 int  main (int argc, char **argv)
 {
@@ -69,21 +68,13 @@ int  main (int argc, char **argv)
   // /******************** Start parallel thread *******************/  
   try
   {
-    c5gopen::C5GOpenDriver c5gopen_driver(ip_ctrl,sys_id,c5gopen_period,logger);
+    c5gopen::C5GOpenDriver* c5gopen_driver= new c5gopen::C5GOpenDriver(ip_ctrl,sys_id,c5gopen_period,logger);
 
-    c5gopen::AvailableCallbackSlots[0] = new c5gopen::DynamicCallback<0x00>();
-    c5gopen::CF callback_comau; 
+    c5gopen_driver->init();
 
-    callback_comau = c5gopen::MemberFunctionCallback(&c5gopen_driver, &c5gopen::C5GOpenDriver::c5gopen_callback);
+    c5gopen_driver->run();
 
-    // int ret = (*callback_comau)(0);
-    // cout << "return: " << ret;
-
-    c5gopen_driver.init();
-
-    c5gopen_driver.run();
-
-    while(c5gopen_driver.getThreadsStatus())
+    while(c5gopen_driver->getThreadsStatus())
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
