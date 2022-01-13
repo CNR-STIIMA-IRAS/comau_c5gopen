@@ -37,7 +37,6 @@
 #include <cnr_logger/cnr_logger_macros.h>
 
 #include <comau_c5gopen_lpc/c5gopen_driver.h>
-#include <comau_c5gopen_lpc/c5gopen_dynamic_callbacks.h>
 
 int  main (int argc, char **argv)
 {

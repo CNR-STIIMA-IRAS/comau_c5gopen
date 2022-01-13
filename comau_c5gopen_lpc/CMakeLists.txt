@@ -51,8 +51,8 @@ if (EORL_ENABLED)
   add_executable(c5gopen_lpc_node src/c5gopen_lpc_node.cpp
                                   src/c5gopen_driver.cpp
                                   src/c5gopen_utilities.cpp
-                                  src/realtime_utilities.cpp
-                                  src/c5gopen_dynamic_callbacks.cpp)
+                                  src/realtime_utilities.cpp )
+                                  #src/c5gopen_dynamic_callbacks.cpp)
 
   add_library(eorl SHARED IMPORTED)
   set_property(TARGET eorl PROPERTY IMPORTED_LOCATION /opt/lib/libeORL.so)

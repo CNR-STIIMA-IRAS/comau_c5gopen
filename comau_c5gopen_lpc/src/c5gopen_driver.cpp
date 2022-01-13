@@ -47,7 +47,6 @@
 #include <comau_c5gopen_lpc/c5gopen_utilities.h>
 #include <comau_c5gopen_lpc/realtime_utilities.h>
 #include <comau_c5gopen_lpc/c5gopen_driver.h>
-#include <comau_c5gopen_lpc/c5gopen_dynamic_callbacks.h>
 
 namespace c5gopen
 {
@@ -145,7 +144,6 @@ namespace c5gopen
     } 
 
     ORLOPEN_callback callback_comau; 
-   // callback_comau = MemberFunctionCallback(this, &c5gopen::C5GOpenDriver::c5gopen_callback);
 
     if ( ORLOPEN_SetCallBackFunction( c5gopen_callback, ORL_SILENT, ORL_CNTRL01 ) < ORLOPEN_RES_OK )
     {
@@ -180,7 +178,6 @@ namespace c5gopen
     // Enter in the infinite loop
     while (c5gopen_active_)
     {
-      CNR_INFO(*logger_, "c5gopen callback cnt " << c5gopen_cnt );
       std::this_thread::sleep_for(std::chrono::microseconds(1000)); // need to use varibale to set sleep_for function
     }
 
@@ -208,9 +205,6 @@ namespace c5gopen
 
   int c5gopen_callback ( int input ) 
   {
-    g_driver->c5gopen_cnt++;
-
-
     // static bool first_entry = false;
     // if( 0 )
     // {
@@ -226,217 +220,183 @@ namespace c5gopen
     //   first_entry = true;
     // }
     
-    // long mask;
-    // bool arm_driveon;
-    // char s_modality [40];
-    // char flag_new_modality [MAX_NUM_ARMS];
+    long mask;
+    bool arm_driveon;
+    char s_modality[40];
+    char flag_new_modality[MAX_NUM_ARMS];
     
     
-    // for ( int iArm=0; iArm<MAX_NUM_ARMS; iArm++ ) 
-    // {
-    //   if ( !flag_ExitFromOpen[iArm] )
-    //   {
-    //     flag_new_modality   [iArm] = false;
-    //     modality_old        [iArm] = modality_active[iArm];
-    //     modality_active     [iArm] = ORLOPEN_GetModeMasterAx  ( ORL_SILENT,ORL_CNTRL01, iArm );
-    //     mask                       = ORLOPEN_GetOpenMask      ( ORL_SILENT,ORL_CNTRL01, iArm );
+    for ( int iArm=0; iArm<MAX_NUM_ARMS; iArm++ ) 
+    {
+      if ( !g_driver->flag_ExitFromOpen_[iArm] )
+      {
+        flag_new_modality[iArm]           = false;
+        g_driver->modality_old_[iArm]     = g_driver->modality_active_[iArm];
         
-    //     arm_driveon = ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, ORL_CNTRL01, iArm) == CRCOPEN_STS_DRIVEON ) ? true : false;
+        mask = ORLOPEN_GetOpenMask      ( ORL_SILENT,ORL_CNTRL01, iArm );
+        g_driver->modality_active_[iArm]  = ORLOPEN_GetModeMasterAx  ( ORL_SILENT,ORL_CNTRL01, iArm );
         
-    //     if ( arm_driveon && !first_arm_driveon[iArm] )
-    //       first_arm_driveon[iArm] = true;
         
-    //     decode_modality( (unsigned int)modality_active[iArm], s_modality, false );
+        arm_driveon = ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, ORL_CNTRL01, iArm) == CRCOPEN_STS_DRIVEON ) ? true : false;
+        
+        if ( arm_driveon && ! g_driver->first_arm_driveon_[iArm] )
+           g_driver->first_arm_driveon_[iArm] = true;
+        
+        decode_modality( (unsigned int) g_driver->modality_active_[iArm], s_modality, false );
             
-    //     if( modality_old[iArm] != modality_active[iArm] ) 
-    //     {
-    //       flag_new_modality[iArm] = true;
-    //       printf( " [ %s%s:%d%s ]\tARM %d Modality %d %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, iArm+1, (unsigned int)modality_active[iArm], s_modality);
-    //     }   
-    //     else 
-    //       flag_new_modality[iArm] = false;
+        if(  g_driver->modality_old_[iArm] !=  g_driver->modality_active_[iArm] ) 
+        {
+          flag_new_modality[iArm] = true;
+          CNR_INFO( g_driver->logger_, "ARM " << iArm+1 << " Modality" << (unsigned int)g_driver->modality_active_[iArm] << " " <<  s_modality );
+        }   
+        else 
+          flag_new_modality[iArm] = false;
         
-    //     switch ( modality_active[iArm] ) 
-    //     {
-    //       // LISTEN MODE
-    //       case CRCOPEN_LISTEN:
-    //         if (system_initialized)
-    //         { 
-    //           if ( first_arm_driveon[iArm] )
-    //           {
-    //             if ( ORLOPEN_sync_position( &actual_joints_position[iArm], ORL_SILENT, ORL_CNTRL01, iArm ) < ORLOPEN_RES_OK )
-    //             {
-    //               ORLOPEN_sync_position( &actual_joints_position[iArm], ORL_VERBOSE, ORL_CNTRL01, iArm );
-    //               printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_sync_position %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
-    //               exit(0);
-    //             }
-    //           }
+        switch (  g_driver->modality_active_[iArm] ) 
+        {
+          // LISTEN MODE
+          case CRCOPEN_LISTEN:
+            if ( g_driver->system_initialized_)
+            { 
+              if (  g_driver->first_arm_driveon_[iArm] )
+              {
+                if ( ORLOPEN_sync_position( & g_driver->actual_joints_position_[iArm], ORL_SILENT, ORL_CNTRL01, iArm ) < ORLOPEN_RES_OK )
+                {
+                  ORLOPEN_sync_position( & g_driver->actual_joints_position_[iArm], ORL_VERBOSE, ORL_CNTRL01, iArm );
+                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_sync_position.");
+                  exit(0);
+                }
+              }
               
-    //           ORL_joint_value         actual_joints_position_         [MAX_NUM_ARMS];
-    //           ORL_cartesian_position  actual_cartesian_position_      [MAX_NUM_ARMS];
+              ORL_joint_value actual_joints_position_tmp [MAX_NUM_ARMS];
+              ORL_cartesian_position actual_cartesian_position_tmp [MAX_NUM_ARMS];
               
-    //           if ( ORLOPEN_get_pos_measured(&actual_joints_position_[iArm],&actual_cartesian_position_[iArm], LAST_MESS, ORL_SILENT, ORL_CNTRL01, iArm ) < ORLOPEN_RES_OK )
-    //           {
-    //             ORLOPEN_get_pos_measured(&actual_joints_position_[iArm],&actual_cartesian_position_[iArm], LAST_MESS, ORL_VERBOSE, ORL_CNTRL01, iArm );
-    //             printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_get_pos_measured%s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
-    //             exit(0);
-    //           }      
+              if ( ORLOPEN_get_pos_measured(&actual_joints_position_tmp[iArm],&actual_cartesian_position_tmp[iArm], LAST_MESS, ORL_SILENT, ORL_CNTRL01, iArm ) < ORLOPEN_RES_OK )
+              {
+                ORLOPEN_get_pos_measured(&actual_joints_position_tmp[iArm],&actual_cartesian_position_tmp[iArm], LAST_MESS, ORL_VERBOSE, ORL_CNTRL01, iArm );
+                CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_get_pos_measured.");
+                exit(0);
+              }      
               
-    //           memset( &starting_absolute_position[iArm], 0x00, sizeof(absolute_target_position_t) );
-    //           memcpy( &starting_absolute_position[iArm], &actual_joints_position_[iArm], sizeof(absolute_target_position_t ));
+              memset( &g_driver->starting_absolute_jnt_position_[iArm], 0x00, sizeof(absolute_target_position_t) );
+              memcpy( &g_driver->starting_absolute_jnt_position_[iArm], & g_driver->actual_joints_position_[iArm], sizeof(absolute_target_position_t ));
               
-    //           if ( absolute_target_position_log[iArm]->full() )
-    //             absolute_target_position_log[iArm]->pop_front();
+              if (  g_driver->absolute_target_jnt_position_log_[iArm].full() )
+                g_driver-> absolute_target_jnt_position_log_[iArm].pop_front();
 
-    //           absolute_target_position_log[iArm]->push_back( starting_absolute_position[iArm] );
+               g_driver->absolute_target_jnt_position_log_[iArm].push_back( g_driver->starting_absolute_jnt_position_[iArm] );
                 
-    //         }
+            }
             
-    //         break;
+            break;
 
-    //       // ABSOLUTE MODE     
-    //       case CRCOPEN_POS_ABSOLUTE:
-    //         if (cycle_active)
-    //         {
-    //           if ( (flag_new_modality[iArm]) && (modality_active[iArm] == CRCOPEN_POS_ABSOLUTE) )
-    //           {
-    //             printf( " [ %s%s:%d%s ]\tModality CRCOPEN_POS_ABSOLUTE activated \n", GREEN, __FUNCFILE__, __LINE__, RESET );
-    //             robot_movement_enabled[iArm] = false;
-    //           }
-    //         }
+          // ABSOLUTE MODE     
+          case CRCOPEN_POS_ABSOLUTE:
+            if (cycle_active_)
+            {
+              if ( (flag_new_modality[iArm]) && ( g_driver->modality_active_[iArm] == CRCOPEN_POS_ABSOLUTE) )
+              {
+                CNR_INFO(  g_driver->logger_, "Modality CRCOPEN_POS_ABSOLUTE activated." );
+                 g_driver->robot_movement_enabled_[iArm] = false;
+              }
+            }
             
-    //         if ( arm_driveon )
-    //         {
-    //           if ( robot_movement_enabled[iArm] )
-    //           {  
-    //             if ( !absolute_target_position[iArm]->empty() )
-    //             {
-    //               memcpy( &last_absolute_target_position_rcv[iArm], &absolute_target_position[iArm]->front(), sizeof(absolute_target_position_t ));
-    //               absolute_target_position[iArm]->pop_front();
+            if ( arm_driveon )
+            {
+              if (  g_driver->robot_movement_enabled_[iArm] )
+              {  
+                if ( ! g_driver->absolute_target_jnt_position_[iArm].empty() )
+                {
+                  memcpy( &g_driver->last_absolute_target_jnt_position_rcv_[iArm], & g_driver->absolute_target_jnt_position_[iArm].front(), sizeof(absolute_target_position_t ));
+                   g_driver->absolute_target_jnt_position_[iArm].pop_front();
                   
-    //               if ( ORLOPEN_set_absolute_pos_target_degree( &last_absolute_target_position_rcv[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
-    //                 printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_set_absolute_pos_target_degree %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
+                  if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                    CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." );
                   
-    //               ORL_axis_2_joints( &last_absolute_target_position_rcv[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm );
+                  ORL_axis_2_joints( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm );
 
-    //               last_absolute_target_position_rcv[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
-    //               ORL_joints_conversion( &last_absolute_target_position_rcv[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
+                  g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
+                  ORL_joints_conversion( &last_absolute_target_jnt_position_rcv_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
                   
-    //               if ( ORLOPEN_set_ExtData( &last_absolute_target_position_rcv[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
-    //                 printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_set_ExtData %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
+                  if ( ORLOPEN_set_ExtData( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                    CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_ExtData." );
                   
-    //               if ( absolute_target_position_log[iArm]->full() )
-    //                 absolute_target_position_log[iArm]->pop_front();
+                  if (  g_driver->absolute_target_jnt_position_log_[iArm].full() )
+                     g_driver->absolute_target_jnt_position_log_[iArm].pop_front();
                   
-    //               absolute_target_position_log[iArm]->push_back( last_absolute_target_position_rcv[iArm] );  
-    //             }
-    //             else
-    //             {                
-    //               if ( ORLOPEN_set_absolute_pos_target_degree( &last_absolute_target_position_rcv[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
-    //                 printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_set_absolute_pos_target_degree %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
+                  g_driver->absolute_target_jnt_position_log_[iArm].push_back( g_driver->last_absolute_target_jnt_position_rcv_[iArm] );  
+                }
+                else
+                {                
+                  if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                    CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." );
                   
-    //               ORL_axis_2_joints( &last_absolute_target_position_rcv[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm );
+                  ORL_axis_2_joints( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm );
                   
-    //               last_absolute_target_position_rcv[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
-    //               ORL_joints_conversion( &last_absolute_target_position_rcv[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
+                  g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
+                  ORL_joints_conversion( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
                   
-    //               if ( ORLOPEN_set_ExtData( &last_absolute_target_position_rcv[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
-    //                 printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_set_ExtData %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
+                  if ( ORLOPEN_set_ExtData( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                    CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_ExtData." );
                   
-    //               if ( absolute_target_position_log[iArm]->full() )
-    //                 absolute_target_position_log[iArm]->pop_front();
+                  if (  g_driver->absolute_target_jnt_position_log_[iArm].full() )
+                     g_driver->absolute_target_jnt_position_log_[iArm].pop_front();
                 
-    //               absolute_target_position_log[iArm]->push_back( last_absolute_target_position_rcv[iArm] );
+                   g_driver->absolute_target_jnt_position_log_[iArm].push_back( last_absolute_target_jnt_position_rcv[iArm] );
                   
-    //             }
-    //           }
-    //           else
-    //           {
-    //             starting_absolute_position[iArm].target_pos.unit_type = ORL_POSITION_LINK_DEGREE;
+                }
+              }
+              else
+              {
+                g_driver->starting_absolute_jnt_position_[iArm].target_pos.unit_type = ORL_POSITION_LINK_DEGREE;
                 
-    //             if ( ORLOPEN_set_absolute_pos_target_degree( &starting_absolute_position[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
-    //                 printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_set_absolute_pos_target_degree %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
+                if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->starting_absolute_jnt_position_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree.");
                 
-    //             ORL_axis_2_joints( &starting_absolute_position[iArm].target_pos , ORL_SILENT, ORL_CNTRL01, iArm );   
+                ORL_axis_2_joints( &g_driver->starting_absolute_jnt_position_[iArm].target_pos , ORL_SILENT, ORL_CNTRL01, iArm );   
                 
-    //             starting_absolute_position[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
-    //             ORL_joints_conversion( &starting_absolute_position[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
+                g_driver->starting_absolute_jnt_position_[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
+                ORL_joints_conversion( &g_driver->starting_absolute_jnt_position_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
                             
-    //             if ( ORLOPEN_set_ExtData( &starting_absolute_position[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
-    //                 printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_set_ExtData %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
+                if ( ORLOPEN_set_ExtData( &g_driver->starting_absolute_jnt_position_[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_ExtData.");
                 
-    //             if ( absolute_target_position_log[iArm]->full() )
-    //               absolute_target_position_log[iArm]->pop_front();
+                if (  g_driver->absolute_target_jnt_position_log_[iArm].full() )
+                  g_driver->absolute_target_jnt_position_log_[iArm].pop_front();
               
-    //             absolute_target_position_log[iArm]->push_back( starting_absolute_position[iArm] );
-    //           }
+                 g_driver->absolute_target_jnt_position_log_[iArm].push_back( g_driver->starting_absolute_jnt_position_[iArm] );
+              }
               
-    //         }
+            }
             
-    //         break;
+            break;
             
-    //       // ADDITIVE MODE   
-    //       case CRCOPEN_POS_ADDITIVE:
-    //         if (cycle_active)
-    //         {
-    //           if ( (flag_new_modality[iArm]) && (modality_active[iArm] == CRCOPEN_POS_ADDITIVE) )
-    //           {
-    //             printf( " [ %s%s:%d%s ]\tModality CRCOPEN_POS_ADDITIVE activated \n", GREEN, __FUNCFILE__, __LINE__, RESET );
-    //             received_delta_target_cart[iArm] = false;
-    //           }
-    //         }
-            
-    //         if ( arm_driveon )
-    //         {
-    //           if ( received_delta_target_cart[iArm] )
-    //           {  
-    //             if ( !delta_target_cart_pos[iArm]->empty() )
-    //             {
-    //               memcpy( &last_delta_target_cart_pos[iArm], &delta_target_cart_pos[iArm]->front(), sizeof(delta_position_t ));
-    //               delta_target_cart_pos[iArm]->pop_front();                  
-    //             }
-    //           }
-    //           else
-    //             memset( &last_delta_target_cart_pos[iArm].ideal, 0x00, sizeof(delta_position_t) );
-              
-    //           if ( ORLOPEN_get_pos_measured(&additive_starting_jnt_link_[iArm], &additive_starting_cartesian_pose_[iArm], LAST_MESS, ORL_SILENT, ORL_CNTRL01, iArm ) < ORLOPEN_RES_OK )
-    //           {
-    //             ORLOPEN_get_pos_measured(&additive_starting_jnt_link_[iArm],&additive_starting_cartesian_pose_[iArm], LAST_MESS, ORL_VERBOSE, ORL_CNTRL01, iArm );
-    //             printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_get_pos_measured%s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET );
-    //             exit(0);
-    //           }
-              
-    //           last_delta_target_cart_pos[iArm].ideal.unit_type = ORL_CART_POSITION;
-    //           strcpy( last_delta_target_cart_pos[iArm].ideal.config_flags, additive_starting_cartesian_pose_[iArm].config_flags);
-              
-    //           if ( ORLOPEN_set_additive_pos_target_cartesian( &last_delta_target_cart_pos[iArm].ideal, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
-    //             printf( " [ %s%s:%d%s ]\t %serror in ORLOPEN_set_additive_pos_target_cartesian %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, RED, RESET ); 
-                          
-    //         }
+          // ADDITIVE MODE   
+          case CRCOPEN_POS_ADDITIVE:
+            CNR_WARN( g_driver->logger_, "The CRCOPEN_POS_ADDITIVE mode is not currently implemented.");
+            break;
 
-    //         break;
+          case CRCOPEN_POS_RELATIVE:
+            CNR_WARN( g_driver->logger_, "The CRCOPEN_POS_RELATIVE mode is not currently implemented.");
+            break;
 
-    //       case CRCOPEN_POS_RELATIVE:
-    //       // Not yet implemented
-    //       break;
+          case CRCOPEN_POS_ADDITIVE_SB:
+            CNR_WARN( g_driver->logger_, "The CRCOPEN_POS_ADDITIVE_SB mode is not currently implemented.");
+            break;
 
-    //       case CRCOPEN_POS_ADDITIVE_SB:
-    //       // Not yet implemented
-    //       break;
-
-    //       case CRCOPEN_POS_ADDITIVE_SBE:
-    //       // Not yet implemented
-    //       break;
+          case CRCOPEN_POS_ADDITIVE_SBE:
+            CNR_WARN( g_driver->logger_, "The CRCOPEN_POS_ADDITIVE_SBE mode is not currently implemented.");
+            break;
         
-    //     }
-    //   }
+        }
+      }
       
-    //   if ( flag_ExitFromOpen[iArm] )
-    //     ORLOPEN_ExitFromOpen( ORL_SILENT,  ORL_CNTRL01, iArm );
+      if ( g_driver->flag_ExitFromOpen[iArm] )
+        ORLOPEN_ExitFromOpen( ORL_SILENT,  ORL_CNTRL01, iArm );
       
-    // }
+    }
     
-    // return ORLOPEN_RES_OK;
+    return ORLOPEN_RES_OK;
   }
 
 } // end of namespace c5gopen
