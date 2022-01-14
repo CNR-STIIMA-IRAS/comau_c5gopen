@@ -52,25 +52,34 @@
 
 #include <comau_c5gopen_lpc/realtime_buffer_utils.h>
 
+#define LAST_MESS 0
 
-#define MAX_NUM_ARMS    1 // to be checked and moved in a cfg file  
+#define MAX_NUM_ARMS 1 // to be checked and moved in a cfg file  
 
 #define target_pos_max_buff_len 100
 #define target_pos_max_buff_log_len 300
 #define delta_target_cart_pos_max_len 10
-struct absolute_target_position_t
-{
-  ORL_joint_value target_pos;
-  ORL_joint_value target_vel;
-}__attribute__ ( ( packed ) ); 
-
-struct absolute_real_position_t
-{
-  ORL_joint_value real_pos;
-  ORL_joint_value real_vel;
-}__attribute__ ( ( packed ) ); 
 namespace c5gopen
 {   
+  struct absolute_target_position_t
+  {
+    ORL_joint_value target_pos;
+    ORL_joint_value target_vel;
+  }__attribute__ ( ( packed ) ); 
+
+  struct absolute_real_position_t
+  {
+    ORL_joint_value real_pos;
+    ORL_joint_value real_vel;
+  }__attribute__ ( ( packed ) ); 
+
+  enum thread_status
+  {
+    BEFORE_RUN  = 0,
+    RUNNING     = 1,
+    CLOSED      = 2 
+  };
+
   class C5GOpenDriver: public std::enable_shared_from_this<c5gopen::C5GOpenDriver>
   {
   public:
@@ -82,29 +91,34 @@ namespace c5gopen
 
     bool init();
     bool run();
-    bool getThreadsStatus();
+    thread_status getC5GOpenThreadsStatus();
+    thread_status getComThreadsStatus();
+    thread_status getLoopConsoleThreadsStatus();
+    
     friend int c5gopen_callback( int input );
 
     typedef int (C5GOpenDriver::*CF)(int);
     
   private:
 
-    bool threads_status_;
-    bool c5gopen_active_;
+    bool c5gopen_cycle_active_ = false;
+    bool system_initialized_ = false;
+
+    thread_status c5gopen_threads_status_ = thread_status::BEFORE_RUN;
+    thread_status com_threads_status_ = thread_status::BEFORE_RUN;
+    thread_status loop_console_threads_status_ = thread_status::BEFORE_RUN;
 
     int c5gopen_period_; // in microseconds
 
     std::string ip_ctrl_;
     std::string sys_id_;
 
+    std::mutex mtx_;
+
     std::thread c5gopen_thread_; 
     std::thread com_thread_; 
     std::thread loop_console_thread_;
     std::shared_ptr<cnr_logger::TraceLogger> logger_;
-
-    int cycle_active_     = 0;
-    int mask_moving_arms_ = 0;
-    bool system_initialized_ = false;
 
     bool first_arm_driveon_[MAX_NUM_ARMS]         = {false};
     bool flag_RunningMove_[MAX_NUM_ARMS]          = {false};
@@ -127,13 +141,12 @@ namespace c5gopen
     void c5gopen_thread( );
     void com_thread( );
     void loop_console_thread( );
+    int  initialize_control_position( void );
+    void set_exit_from_open( const int& iArm );
 
   };
 
   int c5gopen_callback( int input );
-
-  typedef C5GOpenDriver::Ptr C5GOpenDriverPtr;
-
   void init_driver_library(C5GOpenDriver* c5gopen_driver);
 
 } // end of namespace c5gopen

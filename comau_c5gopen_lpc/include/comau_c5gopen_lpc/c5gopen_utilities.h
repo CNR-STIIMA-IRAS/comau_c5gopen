@@ -41,7 +41,6 @@
 namespace c5gopen
 {
   bool set_frames( ORL_cartesian_position* bFrame, ORL_cartesian_position* tFrame, ORL_cartesian_position* uFrame );
-  int initialize_control_position ( void );
   void decode_modality( const int& si_modality, char* string, const bool verbose );
   double get_c5gopen_period_in_usec( const int& c5gopen_period );
   double get_c5gopen_period_in_nsec( const int& c5gopen_period );

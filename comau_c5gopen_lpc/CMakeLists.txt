@@ -18,16 +18,16 @@ else()
   set(PREEMPTIVE_RT OFF CACHE BOOL "Compile library for NON preemptive machines")
 endif()
 
-add_definitions(-DROS_NOT_AVAILABLE) #Enrico 10/12/2021 this precompiler directive should be defined in the libcnr_logger.so but it is not visible in the main program
+#add_definitions(-DROS_NOT_AVAILABLE) #Enrico 10/12/2021 this precompiler directive should be defined in the libcnr_logger.so but it is not visible in the main program
 
-find_package( Boost REQUIRED COMPONENTS system filesystem )
+find_package( Boost REQUIRED COMPONENTS system filesystem thread)
 
 include_directories(include
                     ${Boost_INCLUDE_DIRS}
                     /opt/inc/
                     )
 
-link_directories(${Boost_LIBRARY_DIR})                
+link_directories(${Boost_LIBRARY_DIR} )                
 
 
 if(EXISTS "/opt/inc/eORL.h")
@@ -52,7 +52,6 @@ if (EORL_ENABLED)
                                   src/c5gopen_driver.cpp
                                   src/c5gopen_utilities.cpp
                                   src/realtime_utilities.cpp )
-                                  #src/c5gopen_dynamic_callbacks.cpp)
 
   add_library(eorl SHARED IMPORTED)
   set_property(TARGET eorl PROPERTY IMPORTED_LOCATION /opt/lib/libeORL.so)

@@ -69,11 +69,21 @@ int  main (int argc, char **argv)
   {
     c5gopen::C5GOpenDriver* c5gopen_driver= new c5gopen::C5GOpenDriver(ip_ctrl,sys_id,c5gopen_period,logger);
 
-    c5gopen_driver->init();
+    if ( !c5gopen_driver->init() ) 
+    {
+      CNR_ERROR( *logger, "Unable to init C5GOpen");
+      return -1;
+    }
+      
+    if ( !c5gopen_driver->run() )
+    {
+      CNR_ERROR( *logger, "Unable to run C5GOpen");
+      return -1;
+    }
 
-    c5gopen_driver->run();
-
-    while(c5gopen_driver->getThreadsStatus())
+    while(  c5gopen_driver->getC5GOpenThreadsStatus() != c5gopen::thread_status::CLOSED ||
+            c5gopen_driver->getComThreadsStatus() != c5gopen::thread_status::CLOSED || 
+            c5gopen_driver->getLoopConsoleThreadsStatus() != c5gopen::thread_status::CLOSED )
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }

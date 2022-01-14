@@ -73,78 +73,6 @@ namespace c5gopen
     
   }
 
-  int initialize_control_position ( void )
-  {
-    /// TO BE DONE!!!!
-
-    // int modality_;
-    // long output_jntmask_;
-    // char s_modality_[40];
-    // ORL_System_Variable orl_sys_var;
-
-    // if ( ORLOPEN_GetPowerlinkState(ORL_VERBOSE) == PWL_ACTIVE )
-    // {
-    //   for ( int iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
-    //   {
-    //     modality_        = ORLOPEN_GetModeMasterAx( ORL_SILENT, ORL_CNTRL01, iArm );
-    //     output_jntmask_  = ORLOPEN_GetOpenMask( ORL_SILENT,ORL_CNTRL01, iArm );
-        
-    //     decode_modality( modality_, s_modality_, false );
-        
-    //     CNR_INFO ("\n------ ARM %d MODE %d %s - %s mask %x ------------ \n", 
-    //             iArm+1,
-    //             modality_,
-    //             s_modality_,
-    //           ( ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, ORL_CNTRL01, iArm) == CRCOPEN_STS_DRIVEON ) ? "DRIVE_ON" : "DRIVEOFF"),
-    //           (unsigned int)output_jntmask_ );
-        
-    //     if ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, ORL_CNTRL01, iArm) != CRCOPEN_STS_DRIVEON )
-    //       printf(" [ %s%s:%d%s ]\t %s ATTENTION: The system is in DRIVEOFF status, first syncronized position can't be reliable, don't forget the DRIVEON! %s\n", GREEN, __FUNCFILE__, __LINE__, RESET, BOLDYELLOW, RESET );
-        
-    //     if (first_arm_driveon[iArm])
-    //     {
-    //       ORLOPEN_sync_position(&actual_joints_position[iArm], ORL_SILENT, ORL_CNTRL01, iArm);
-    //     }
-        
-    //     ORL_direct_kinematics(&actual_cartesian_position[iArm],&actual_joints_position[iArm],ORL_SILENT, ORL_CNTRL01,iArm);
-        
-    //     CNR_INFO(" [ %s%s:%d%s ]\t ORLOPEN_sync_position Joint %f %f %f %f %f %f %f %f %f %d\n",  GREEN, __FUNCFILE__, __LINE__, RESET, 
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX1],
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX2],
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX3],
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX4],
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX5],
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX6],
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX7],
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX8],
-    //                                                                                             actual_joints_position[iArm].value[ORL_AX9],
-    //                                                                                             (int)actual_joints_position[iArm].unit_type);
-        
-    //     printf( " [ %s%s:%d%s ]\t                       Pose  %f %f %f %f %f %f %s\n",  GREEN, __FUNCFILE__, __LINE__, RESET, 
-    //                                                                                     actual_cartesian_position[iArm].x,
-    //                                                                                     actual_cartesian_position[iArm].y,
-    //                                                                                     actual_cartesian_position[iArm].z,
-    //                                                                                     actual_cartesian_position[iArm].a,
-    //                                                                                     actual_cartesian_position[iArm].e,
-    //                                                                                     actual_cartesian_position[iArm].r,
-    //                                                                                     actual_cartesian_position[iArm].config_flags);
-        
-    //     sprintf((char *)orl_sys_var.sysvar_name,"$ARM_DATA[%d].ARM_OVR",iArm+1);
-        
-    //     orl_sys_var.ctype = ORL_INT;
-    //     orl_sys_var.iv = 20;
-    //     ORL_set_data( orl_sys_var, ORL_SILENT, ORL_CNTRL01 );
-    //   }
-    //   system_initialized = true;
-    // }
-    // else
-    //   return 1;
-    
-    return 0;
-  }
-
-  //****************************************************// 
-
   void decode_modality( const int& si_modality, char* string, const bool verbose )
   {
     switch(si_modality)
@@ -202,7 +130,7 @@ namespace c5gopen
 
   double get_c5gopen_period_in_nsec( const int& c5gopen_period )
   {
-     double period = get_c5gopen_period_in_usec(c5gopen_period) * pow(10.0,3.0);
+    return get_c5gopen_period_in_usec(c5gopen_period) * pow(10.0,3.0);
   }
 
 }
