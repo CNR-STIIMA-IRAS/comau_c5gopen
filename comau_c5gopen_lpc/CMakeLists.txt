@@ -20,14 +20,29 @@ endif()
 
 #add_definitions(-DROS_NOT_AVAILABLE) #Enrico 10/12/2021 this precompiler directive should be defined in the libcnr_logger.so but it is not visible in the main program
 
+### Boost
 find_package( Boost REQUIRED COMPONENTS system filesystem thread)
+
+### YAML-CPP
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
+
+### Mosquitto
+#find_package(PkgConfig REQUIRED)
+#pkg_check_modules(Mosquitto REQUIRED IMPORTED_TARGET libmosquitto0)
+
+set(Mosquitto_LIBRARIES mosquitto)
 
 include_directories(include
                     ${Boost_INCLUDE_DIRS}
+                    ${YAML_CPP_INCLUDE_DIRS}
+                    #${Mosquitto_INCLUDE_DIRS}  
                     /opt/inc/
                     )
 
-link_directories(${Boost_LIBRARY_DIR} )                
+link_directories( ${Boost_LIBRARY_DIR} 
+                  ${YAML_CPP_LIBRARY_DIR} )
+                  #${Mosquitto_LIBRARY_DIR}  )                
 
 
 if(EXISTS "/opt/inc/eORL.h")
@@ -51,12 +66,16 @@ if (EORL_ENABLED)
   add_executable(c5gopen_lpc_node src/c5gopen_lpc_node.cpp
                                   src/c5gopen_driver.cpp
                                   src/c5gopen_utilities.cpp
-                                  src/realtime_utilities.cpp )
+                                  src/realtime_utilities.cpp
+                                  src/mqtt.cpp
+                                  src/dynamic_callback.cpp )
 
   add_library(eorl SHARED IMPORTED)
   set_property(TARGET eorl PROPERTY IMPORTED_LOCATION /opt/lib/libeORL.so)
 
-  target_link_libraries(c5gopen_lpc_node ${Boost_LIBRARIES} 
+  target_link_libraries(c5gopen_lpc_node  ${Boost_LIBRARIES}
+                                          ${YAML_CPP_LIBRARIES}
+                                          ${Mosquitto_LIBRARIES} 
                                           cnr_logger
                                           m 
                                           pthread 

@@ -193,7 +193,7 @@ namespace c5gopen
     {
       if ( ORLOPEN_GetPowerlinkState(ORL_SILENT) != PWL_ACTIVE )
       {
-        for (int iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
+        for (int8_t iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
           set_exit_from_open(iArm);
       }
  
@@ -202,13 +202,14 @@ namespace c5gopen
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     ORLOPEN_StopCommunication( ORL_VERBOSE );
+    CNR_INFO(*logger_, "c5gopen communication stopped.");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     ORL_terminate_controller( ORL_VERBOSE, ORL_CNTRL01 );
-
-    CNR_INFO( *logger_, "C5Gopen theread properly stopped." );
+    CNR_INFO(*logger_, "c5gopen controller terminated.");
 
     c5gopen_threads_status_ = thread_status::CLOSED;
+    CNR_INFO( *logger_, "c5gopen theread closed." );
   }
 
   // C5G Open thread
@@ -223,6 +224,7 @@ namespace c5gopen
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     com_threads_status_ = thread_status::CLOSED;
+    CNR_INFO( *logger_, "Communication theread closed." );
   }
 
   // Console thread
@@ -242,30 +244,29 @@ namespace c5gopen
         std::string gl;
         getline(std::cin,gl);
         
-        if ( gl.compare("All") )
+        if ( gl.compare("All") == 0 )
         {
-          for (int iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
+          for (int8_t iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
             set_exit_from_open( iArm );
 
-          CNR_INFO( *logger_, "... preparing to exit from open wait please... " );
-          break;  
+          CNR_INFO( *logger_, "... preparing to exit from c5gopen wait please... " ); 
         }
-        else if ( gl.compare("1") && std::stoi(gl) < MAX_NUM_ARMS )
+        else if ( gl.compare("1") == 0 && std::stoi(gl) <= MAX_NUM_ARMS )
         {
           set_exit_from_open( ORL_ARM1 );
           CNR_INFO( *logger_, " ... preparing to exit from ARM 1 open modelity wait please... " );
         }
-        else if ( gl.compare("2") && std::stoi(gl) < MAX_NUM_ARMS )
+        else if ( gl.compare("2") == 0 && std::stoi(gl) <= MAX_NUM_ARMS )
         {
           set_exit_from_open( ORL_ARM2 );
           CNR_INFO( *logger_, " ... preparing to exit from ARM 2 open modelity wait please... " );
         }
-        else if ( gl.compare("3") && std::stoi(gl) < MAX_NUM_ARMS )
+        else if ( gl.compare("3") == 0 && std::stoi(gl) <= MAX_NUM_ARMS )
         {
           set_exit_from_open( ORL_ARM3 );
           CNR_INFO( *logger_, " ... preparing to exit from ARM 3 open modelity wait please... " );
         }
-        else if ( gl.compare("4") && std::stoi(gl) < MAX_NUM_ARMS )
+        else if ( gl.compare("4") == 0 && std::stoi(gl) <= MAX_NUM_ARMS )
         {
           set_exit_from_open( ORL_ARM4 );
           CNR_INFO( *logger_, " ... preparing to exit from ARM 4 open modelity wait please... " );
@@ -279,18 +280,20 @@ namespace c5gopen
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     loop_console_threads_status_ = thread_status::CLOSED;
+
+    CNR_INFO( *logger_, "Console theread closed." );
   }
 
   int C5GOpenDriver::initialize_control_position ( void )
   {
-    int modality;
+    int8_t modality;
     long output_jntmask;
     char s_modality[40];
     ORL_System_Variable orl_sys_var;
 
     if ( ORLOPEN_GetPowerlinkState(ORL_VERBOSE) == PWL_ACTIVE )
     {
-      for ( int iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
+      for ( int8_t iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
       {
         modality        = ORLOPEN_GetModeMasterAx( ORL_SILENT, ORL_CNTRL01, iArm );
         output_jntmask  = ORLOPEN_GetOpenMask( ORL_SILENT,ORL_CNTRL01, iArm );
@@ -321,7 +324,7 @@ namespace c5gopen
                             << actual_joints_position_[iArm].value[ORL_AX7] << " "
                             << actual_joints_position_[iArm].value[ORL_AX8] << " "
                             << actual_joints_position_[iArm].value[ORL_AX9] << " "
-                            << (int)actual_joints_position_[iArm].unit_type );
+                            << (int16_t)actual_joints_position_[iArm].unit_type );
         
         CNR_INFO( *logger_, " Pose " 
                             << actual_cartesian_position_[iArm].x << " "
@@ -347,7 +350,7 @@ namespace c5gopen
     return 0;
   }
 
-  void C5GOpenDriver::set_exit_from_open( const int& iArm )
+  void C5GOpenDriver::set_exit_from_open( const int8_t& iArm )
   {
     mtx_.lock();
     flag_ExitFromOpen_[iArm]         = true;
@@ -363,7 +366,7 @@ namespace c5gopen
     char flag_new_modality[MAX_NUM_ARMS];
     
     
-    for ( int iArm=0; iArm<MAX_NUM_ARMS; iArm++ ) 
+    for ( int8_t iArm=0; iArm<MAX_NUM_ARMS; iArm++ ) 
     {
       if ( !g_driver->flag_ExitFromOpen_[iArm] )
       {
@@ -379,12 +382,12 @@ namespace c5gopen
         if ( arm_driveon && ! g_driver->first_arm_driveon_[iArm] )
            g_driver->first_arm_driveon_[iArm] = true;
         
-        decode_modality( (unsigned int) g_driver->modality_active_[iArm], s_modality, false );
+        decode_modality( (unsigned int8_t) g_driver->modality_active_[iArm], s_modality, false );
             
         if(  g_driver->modality_old_[iArm] !=  g_driver->modality_active_[iArm] ) 
         {
           flag_new_modality[iArm] = true;
-          CNR_INFO( g_driver->logger_, "ARM " << iArm+1 << " Modality" << (unsigned int)g_driver->modality_active_[iArm] << " " <<  s_modality );
+          CNR_INFO( g_driver->logger_, "ARM " << iArm+1 << " Modality" << (unsigned int8_t)g_driver->modality_active_[iArm] << " " <<  s_modality );
         }   
         else 
           flag_new_modality[iArm] = false;

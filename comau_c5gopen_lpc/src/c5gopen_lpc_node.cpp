@@ -33,6 +33,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <fstream>
+
+#include <yaml-cpp/yaml.h>
+
 #include <cnr_logger/cnr_logger.h>
 #include <cnr_logger/cnr_logger_macros.h>
 
@@ -40,15 +44,19 @@
 
 int  main (int argc, char **argv)
 {
-  std::string ip_ctrl;
-  std::string sys_id;
-  std::string logger_cfg_name;
+  YAML::Node cfg_file = YAML::LoadFile("/home/c5gopen/comau_devel_ws/src/comau_c5gopen/comau_c5gopen_lpc/cfg/c5gopen_cfg.yaml");
+
+  std::cout << "c5gopen_ctrl: " << cfg_file["c5gopen_ctrl"].as<std::string>() << std::endl;
+
+  std::string c5gopen_ip_ctrl;
+  std::string c5gopen_sys_id;
+  std::string c5gopen_logger_cfg_name;
   
   if( argc < 5) 
   {
-    ip_ctrl = std::string(argv[1]);
-    sys_id  = std::string(argv[2]);
-    logger_cfg_name = std::string(argv[3]);    
+    c5gopen_ip_ctrl = std::string(argv[1]);
+    c5gopen_sys_id  = std::string(argv[2]);
+    c5gopen_logger_cfg_name = std::string(argv[3]);    
   }
   else
   {
@@ -58,7 +66,7 @@ int  main (int argc, char **argv)
 
   // Create logger object
   std::shared_ptr<cnr_logger::TraceLogger> logger(new cnr_logger::TraceLogger("c5gopen", 
-                                                                              logger_cfg_name, 
+                                                                              c5gopen_logger_cfg_name, 
                                                                               true, 
                                                                               true));  
  
@@ -67,7 +75,10 @@ int  main (int argc, char **argv)
   // /******************** Start parallel thread *******************/  
   try
   {
-    c5gopen::C5GOpenDriver* c5gopen_driver= new c5gopen::C5GOpenDriver(ip_ctrl,sys_id,c5gopen_period,logger);
+    c5gopen::C5GOpenDriver* c5gopen_driver= new c5gopen::C5GOpenDriver( c5gopen_ip_ctrl,
+                                                                        c5gopen_sys_id,
+                                                                        c5gopen_period,
+                                                                        logger);
 
     if ( !c5gopen_driver->init() ) 
     {
@@ -100,6 +111,8 @@ int  main (int argc, char **argv)
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  CNR_INFO(*logger, "Closing the main c5gopen node");
   
   return 0;
 }

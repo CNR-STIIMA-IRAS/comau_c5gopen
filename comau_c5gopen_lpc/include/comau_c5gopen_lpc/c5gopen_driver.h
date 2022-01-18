@@ -142,7 +142,7 @@ namespace c5gopen
     void com_thread( );
     void loop_console_thread( );
     int  initialize_control_position( void );
-    void set_exit_from_open( const int& iArm );
+    void set_exit_from_open( const int8_t& iArm );
 
   };
 
