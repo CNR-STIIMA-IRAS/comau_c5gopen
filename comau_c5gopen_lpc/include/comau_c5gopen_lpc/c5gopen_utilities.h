@@ -38,12 +38,41 @@
 
 #include <eORL.h>
 
+#include <yaml-cpp/yaml.h>
+
 namespace c5gopen
 {
-  bool set_frames( ORL_cartesian_position* bFrame, ORL_cartesian_position* tFrame, ORL_cartesian_position* uFrame );
-  void decode_modality( const int& si_modality, char* string, const bool verbose );
-  double get_c5gopen_period_in_usec( const int& c5gopen_period );
-  double get_c5gopen_period_in_nsec( const int& c5gopen_period );
+  struct C5GOpenCfg 
+  {
+    size_t ctrl_idx_;
+    std::string ip_ctrl_;
+    std::string sys_id_;
+
+    std::vector<size_t> active_arms_;
+    size_t max_number_of_arms_;
+
+    size_t c5gopen_period_orl_;
+
+    ORL_cartesian_position base_frame_;
+    ORL_cartesian_position user_frame_;
+    ORL_cartesian_position tool_frame_;
+
+    std::string mqtt_client_id_;
+    std::string mqtt_broker_address_;
+    std::string mqtt_port_;
+    std::string mqtt_topic_;
+
+    std::string cnr_logger_cfg_file;
+  };
+
+  bool load_c5gopen_parameters( const std::string& config_file_name, C5GOpenCfg& c5gopen_cfg );
+  size_t get_orl_ctrl_num( const size_t& ctrl_idx );
+  size_t get_orl_arm_num( const size_t& arm_idx );
+  bool set_frames( const std::vector<double>& frame, ORL_cartesian_position& orl_frame );
+  bool decode_modality( const int& si_modality, std::string& string );
+  bool decode_c5gopen_frequency( const double& c5gopen_period_ms, size_t& c5gopen_period_orl );
+  double get_c5gopen_period_in_usec( const size_t& c5gopen_period_orl );
+  double get_c5gopen_period_in_nsec( const size_t& c5gopen_period_orl );
 }
 
 #endif

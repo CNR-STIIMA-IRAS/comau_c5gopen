@@ -50,11 +50,11 @@
 #include <cnr_logger/cnr_logger.h>
 #include <cnr_logger/cnr_logger_macros.h>
 
+#include <comau_c5gopen_lpc/c5gopen_utilities.h>
+#include <comau_c5gopen_lpc/realtime_utilities.h>
 #include <comau_c5gopen_lpc/realtime_buffer_utils.h>
 
 #define LAST_MESS 0
-
-#define MAX_NUM_ARMS 1 // to be checked and moved in a cfg file  
 
 #define target_pos_max_buff_len 100
 #define target_pos_max_buff_log_len 300
@@ -78,14 +78,14 @@ namespace c5gopen
     BEFORE_RUN  = 0,
     RUNNING     = 1,
     CLOSED      = 2 
-  };
+  }__attribute__ ( ( packed ) );
 
   class C5GOpenDriver: public std::enable_shared_from_this<c5gopen::C5GOpenDriver>
   {
   public:
     typedef std::shared_ptr<C5GOpenDriver> Ptr;
-    C5GOpenDriver(const std::string& ip_ctrl, const std::string& sys_id,
-                  const int& c5gopen_period, std::shared_ptr<cnr_logger::TraceLogger>& logger ); 
+    C5GOpenDriver(const c5gopen::C5GOpenCfg& c5gopen_cfg, 
+                  std::shared_ptr<cnr_logger::TraceLogger>& logger ); 
 
     ~C5GOpenDriver();
 
@@ -100,19 +100,31 @@ namespace c5gopen
     typedef int (C5GOpenDriver::*CF)(int);
     
   private:
+  
+    // C5GOpen Class configuration parameters
+    bool system_initialized_;
 
-    bool c5gopen_cycle_active_ = false;
-    bool system_initialized_ = false;
+    // C5GOpen configuration parameters
+    size_t c5gopen_ctrl_idx_;
+    std::string c5gopen_ip_ctrl_;
+    std::string c5gopen_sys_id_;
 
-    thread_status c5gopen_threads_status_ = thread_status::BEFORE_RUN;
-    thread_status com_threads_status_ = thread_status::BEFORE_RUN;
-    thread_status loop_console_threads_status_ = thread_status::BEFORE_RUN;
+    size_t max_number_of_arms_;
+    std::vector<size_t> active_arms_;
 
-    int c5gopen_period_; // in microseconds
+    size_t c5gopen_period_orl_; // orl format
 
-    std::string ip_ctrl_;
-    std::string sys_id_;
+    ORL_cartesian_position base_frame_;
+    ORL_cartesian_position user_frame_;
+    ORL_cartesian_position tool_frame_;
 
+    // MQTT configuration parameters
+    std::string mqtt_client_id_;
+    std::string mqtt_broker_address_;
+    std::string mqtt_port_;
+    std::string mqtt_topic_;
+
+    // C5GOpen thread managment
     std::mutex mtx_;
 
     std::thread c5gopen_thread_; 
@@ -120,29 +132,34 @@ namespace c5gopen
     std::thread loop_console_thread_;
     std::shared_ptr<cnr_logger::TraceLogger> logger_;
 
-    bool first_arm_driveon_[MAX_NUM_ARMS]         = {false};
-    bool flag_RunningMove_[MAX_NUM_ARMS]          = {false};
-    bool flag_ExitFromOpen_[MAX_NUM_ARMS]         = {false};
-    bool trajectory_in_execution_[MAX_NUM_ARMS]   = {false};
-    bool robot_movement_enabled_[MAX_NUM_ARMS]    = {false};
-    unsigned int modality_active_[MAX_NUM_ARMS]   = {0x0};
-    unsigned int modality_old_[MAX_NUM_ARMS]      = {0x0};
+    thread_status c5gopen_threads_status_ = thread_status::BEFORE_RUN;
+    thread_status com_threads_status_ = thread_status::BEFORE_RUN;
+    thread_status loop_console_threads_status_ = thread_status::BEFORE_RUN;
 
-    ORL_joint_value actual_joints_position_[MAX_NUM_ARMS];
-    ORL_cartesian_position actual_cartesian_position_[MAX_NUM_ARMS];
+    // Robot data
+    std::vector<bool> first_arm_driveon_;
+    std::vector<bool> flag_RunningMove_;
+    std::vector<bool> flag_ExitFromOpen_;
+    std::vector<bool> trajectory_in_execution_;
+    std::vector<bool> robot_movement_enabled_;
+    std::vector<size_t> modality_active_;
+    std::vector<size_t> modality_old_;
 
-    absolute_target_position_t starting_absolute_jnt_position_[MAX_NUM_ARMS];
-    absolute_target_position_t last_absolute_target_jnt_position_rcv_[MAX_NUM_ARMS];
+    std::vector<ORL_joint_value> actual_joints_position_;
+    std::vector<ORL_cartesian_position> actual_cartesian_position_;
 
+    std::vector<absolute_target_position_t> starting_absolute_jnt_position_;
+    std::vector<absolute_target_position_t> last_absolute_target_jnt_position_rcv_;
 
-    realtime_buffer::circ_buffer<absolute_target_position_t> absolute_target_jnt_position_[MAX_NUM_ARMS];
-    realtime_buffer::circ_buffer<absolute_target_position_t> absolute_target_jnt_position_log_[MAX_NUM_ARMS];
+    std::vector<realtime_buffer::circ_buffer<absolute_target_position_t>> absolute_target_jnt_position_;
+    std::vector<realtime_buffer::circ_buffer<absolute_target_position_t>> absolute_target_jnt_position_log_;
 
+    // C5GOpen class internal methods
     void c5gopen_thread( );
     void com_thread( );
     void loop_console_thread( );
-    int  initialize_control_position( void );
-    void set_exit_from_open( const int8_t& iArm );
+    bool initialize_control_position( void );
+    void set_exit_from_open( const size_t& iArm );
 
   };
 

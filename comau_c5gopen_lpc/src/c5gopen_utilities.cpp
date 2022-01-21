@@ -36,101 +36,167 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <cnr_logger/cnr_logger_macros.h>
+
 #include <comau_c5gopen_lpc/c5gopen_utilities.h>
 
 namespace c5gopen
 {
 
-  bool set_frames( ORL_cartesian_position* bFrame, ORL_cartesian_position* tFrame, ORL_cartesian_position* uFrame )
+  bool load_c5gopen_parameters( const std::string& config_file_name, C5GOpenCfg& c5gopen_cfg )
   {
-    /// TO BE DONE!!!!!! The funciton is currently only a mockup, the parameters should be taken from .yaml file
-     
-    bFrame->unit_type = ORL_CART_POSITION;
-    bFrame->x = 0.0;
-    bFrame->y = 0.0;
-    bFrame->z = 0.0;
-    bFrame->a = 0.0;
-    bFrame->e = 0.0;
-    bFrame->r = 0.0;
-      
-    tFrame->unit_type = ORL_CART_POSITION;
-    tFrame->x = 0.0;
-    tFrame->y = 0.0;
-    tFrame->z = 0.0;
-    tFrame->a = 0.0;
-    tFrame->e = 0.0;
-    tFrame->r = 0.0; 
+    // Load parameters form YAML file
+    YAML::Node cfg_file = YAML::LoadFile(config_file_name);
+
+    c5gopen_cfg.ctrl_idx_  = get_orl_ctrl_num(cfg_file["c5gopen_ctrl"]["ctrl_idx"].as<size_t>());
+    c5gopen_cfg.ip_ctrl_   = cfg_file["c5gopen_ctrl"]["ip_ctrl"].as<std::string>();      
+    c5gopen_cfg.sys_id_    = cfg_file["c5gopen_ctrl"]["sys_id"].as<std::string>();
     
-    uFrame->unit_type = ORL_CART_POSITION;     
-    uFrame->x = 0.0;
-    uFrame->y = 0.0;
-    uFrame->z = 0.0;
-    uFrame->a = 0.0;
-    uFrame->e = 0.0;
-    uFrame->r = 0.0;
+    std::vector<size_t> active_arms_ = cfg_file["c5gopen_ctrl"]["active_arms"].as<std::vector<size_t>>();
+    c5gopen_cfg.max_number_of_arms_  = active_arms_.size();
     
+    if (!decode_c5gopen_frequency( cfg_file["c5gopen_ctrl"]["period"].as<double>(), c5gopen_cfg.c5gopen_period_orl_ ) )
+      return false;
+    
+    // Set frames
+    if ( !set_frames( cfg_file["c5gopen_ctrl"]["base_frame"].as<std::vector<double>>(), c5gopen_cfg.base_frame_ ) )
+      return false;
+
+    if ( !set_frames( cfg_file["c5gopen_ctrl"]["user_frame"].as<std::vector<double>>(), c5gopen_cfg.user_frame_ ) )
+      return false;
+
+     if ( !set_frames( cfg_file["c5gopen_ctrl"]["tool_frame"].as<std::vector<double>>(), c5gopen_cfg.tool_frame_ ) )
+      return false;
+
+    c5gopen_cfg.mqtt_client_id_      = cfg_file["mqtt"]["client_id"].as<std::string>();
+    c5gopen_cfg.mqtt_broker_address_ = cfg_file["mqtt"]["broker_address"].as<std::string>();
+    c5gopen_cfg.mqtt_port_           = cfg_file["mqtt"]["mqtt_port"].as<std::string>();
+    c5gopen_cfg.mqtt_topic_          = cfg_file["mqtt"]["mqtt_topic"].as<std::string>();
+
+    c5gopen_cfg.cnr_logger_cfg_file  = cfg_file["cnr_logger"]["logger_cfg_file"].as<std::string>();
+
+    std::cout << cnr_logger::WHITE() << "Configuration parameter loaded from file: " << config_file_name << cnr_logger::RESET() << std::endl;
+
     return true;
-    
   }
 
-  void decode_modality( const int& si_modality, char* string, const bool verbose )
+  size_t get_orl_ctrl_num( const size_t& ctrl_idx )
+  {
+    if (ctrl_idx > 0 && ctrl_idx <= 32)
+      return ctrl_idx-1;
+    else
+    {
+      std::cout << cnr_logger::RED() << "Error: invalid controller index: values allowed are from 1 to 32, provided " << ctrl_idx << cnr_logger::RESET() << std::endl;
+      return 1000;
+    }
+  }
+
+  size_t get_arm( const size_t& arm_idx )
+  {     
+    if (arm_idx > 0 && arm_idx <= 4)
+      return arm_idx-1;
+    else
+    {
+      std::cout << cnr_logger::RED() << "Error: arm index: values allowed are from 1 to 32, provided" << arm_idx << cnr_logger::RESET() << std::endl;
+      return 1000;
+    }
+  }
+
+  bool set_frames( const std::vector<double>& frame, ORL_cartesian_position& orl_frame )
+  {     
+    if (frame.size() == 6)
+    {
+      orl_frame.unit_type = ORL_CART_POSITION;
+      orl_frame.x = frame.at(0);
+      orl_frame.y = frame.at(1);
+      orl_frame.z = frame.at(2);
+      orl_frame.a = frame.at(3);
+      orl_frame.e = frame.at(4);
+      orl_frame.r = frame.at(5);
+    }          
+    else
+    {
+      std::cout << cnr_logger::RED() << "Error: frame wrong data size." << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+
+    return true;
+  }
+
+  bool decode_modality( const int& si_modality, std::string& string )
   {
     switch(si_modality)
     {
     case CRCOPEN_LISTEN:
-      sprintf(string,"CRCOPEN_LISTEN");
+      string = "CRCOPEN_LISTEN";
       break;
     case CRCOPEN_POS_ABSOLUTE:
-      sprintf(string,"CRCOPEN_POS_ABSOLUTE");
+      string = "CRCOPEN_POS_ABSOLUTE";
       break;
     case CRCOPEN_POS_RELATIVE:
-      sprintf(string,"CRCOPEN_POS_RELATIVE");
+      string = "CRCOPEN_POS_RELATIVE";
       break;
     case CRCOPEN_POS_ADDITIVE:
-      sprintf(string,"CRCOPEN_POS_ADDITIVE");
+      string = "CRCOPEN_POS_ADDITIVE";
       break;
     case CRCOPEN_POS_ADDITIVE_SB:
-      sprintf(string,"CRCOPEN_POS_ADDITIVE_SB");
+      string = "CRCOPEN_POS_ADDITIVE_SB";
       break;
     case CRCOPEN_POS_ADDITIVE_SBE:
-      sprintf(string,"CRCOPEN_POS_ADDITIVE_SBE");
+      string = "CRCOPEN_POS_ADDITIVE_SBE";
       break;
     default:
-      sprintf(string,"--");
-      break;
+      string = "--"; 
+      return false;
+    }
+
+    return true;
+  }
+
+  bool decode_c5gopen_frequency( const double& c5gopen_period_ms, size_t& c5gopen_period_orl )
+  {
+    if ( c5gopen_period_ms == 0.4 )
+      c5gopen_period_orl = size_t(ORL_0_4_MILLIS);
+    else if ( c5gopen_period_ms == 2.0 )
+      c5gopen_period_orl = size_t(ORL_2_0_MILLIS);
+    else if( c5gopen_period_ms == 4.0 )
+      c5gopen_period_orl = size_t(ORL_4_0_MILLIS);
+    else if( c5gopen_period_ms == 8.0 )
+      c5gopen_period_orl = size_t(ORL_8_0_MILLIS);
+    else if( c5gopen_period_ms == 16.0 )
+      c5gopen_period_orl = size_t(ORL_16_0_MILLIS);
+    else 
+    {
+      std::cout << cnr_logger::RED() << "Invalid working frequency! Allowed value are: 0.4 - 2.0 - 4.0 - 8.0 - 16.0 [ms]" << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+
+    return true;
+  }
+
+  double get_c5gopen_period_in_usec( const size_t& c5gopen_period_orl )
+  {
+    switch(c5gopen_period_orl)
+    {
+    case size_t(ORL_0_4_MILLIS):
+      return 400.0;
+    case size_t(ORL_2_0_MILLIS):
+      return 2000.0;
+    case size_t(ORL_4_0_MILLIS):
+      return 4000.0;
+    case size_t(ORL_8_0_MILLIS):
+      return 8000.0;
+    case size_t(ORL_16_0_MILLIS):
+      return 16000.0;
+    default:
+      std::cout << cnr_logger::RED() << "Invalid working frequency! Allowed value are: 0.4 - 2.0 - 4.0 - 8.0 - 16.0 [ms]" << cnr_logger::RESET() << std::endl;
+      return -1;
     }
   }
 
-  double get_c5gopen_period_in_usec( const int& c5gopen_period )
+  double get_c5gopen_period_in_nsec( const size_t& c5gopen_period_orl)
   {
-    double period;
-    switch(c5gopen_period)
-    {
-      case ORL_0_4_MILLIS:
-        period = 400.0;
-        break;
-      case ORL_2_0_MILLIS:
-        period = 2000.0;
-        break;
-      case ORL_4_0_MILLIS:
-        period = 4000.0;
-        break;
-      case ORL_8_0_MILLIS:
-        period = 8000.0;
-        break;
-      case ORL_16_0_MILLIS:
-        period = 16000.0;
-        break;
-      default:
-        period = 0.0;
-        break;
-      }
-    return period;
+    return get_c5gopen_period_in_usec(c5gopen_period_orl) * pow(10.0,3.0);
   }
 
-  double get_c5gopen_period_in_nsec( const int& c5gopen_period )
-  {
-    return get_c5gopen_period_in_usec(c5gopen_period) * pow(10.0,3.0);
-  }
-
-}
+} // end namespace c5gopen

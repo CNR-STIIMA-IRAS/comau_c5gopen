@@ -144,7 +144,7 @@ public:
     typedef typename std::vector<T>::size_type size_type;
 
     explicit vector (const std::allocator<T>& alloc = std::allocator<T>()) : standard_vector( alloc ) {}
-    explicit vector (size_type n)                                    : standard_vector( n ) {}
+    explicit vector (size_type n)                                           : standard_vector( n ) {}
     vector (size_type n, const T& val, const std::allocator<T>& alloc = std::allocator<T>()) : standard_vector( n, val, alloc ) {}
 
     template <class InputIterator>

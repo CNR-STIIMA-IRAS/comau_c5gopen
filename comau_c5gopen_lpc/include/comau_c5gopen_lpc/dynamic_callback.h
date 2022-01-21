@@ -2,7 +2,7 @@
 #ifndef DYNAMIC_CALLBACK_MQTT_H
 #define DYNAMIC_CALLBACK_MQTT_H
 
-#include "mqtt.h"
+#include <comau_c5gopen_lpc/mqtt.h>
 
 typedef void (*on_connect_callback)(void *obj, int reason_code);
 typedef void (*on_message_callback)( void *obj, const struct mosquitto_message *msg);

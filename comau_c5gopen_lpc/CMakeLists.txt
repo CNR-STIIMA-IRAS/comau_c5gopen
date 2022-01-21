@@ -29,7 +29,7 @@ pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
 
 ### Mosquitto
 #find_package(PkgConfig REQUIRED)
-#pkg_check_modules(Mosquitto REQUIRED IMPORTED_TARGET libmosquitto0)
+#pkg_check_modules(Mosquitto REQUIRED IMPORTED_TARGET mosquitto)
 
 set(Mosquitto_LIBRARIES mosquitto)
 

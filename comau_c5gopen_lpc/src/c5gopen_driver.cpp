@@ -44,8 +44,6 @@
   #define USE_WALLRATE
 #endif
 
-#include <comau_c5gopen_lpc/c5gopen_utilities.h>
-#include <comau_c5gopen_lpc/realtime_utilities.h>
 #include <comau_c5gopen_lpc/c5gopen_driver.h>
 
 namespace c5gopen
@@ -57,11 +55,37 @@ namespace c5gopen
     g_driver = c5gopen_driver;
   }
 
-  C5GOpenDriver::C5GOpenDriver( const std::string& ip_ctrl, const std::string& sys_id,
-                                const int& c5gopen_period, std::shared_ptr<cnr_logger::TraceLogger>& logger ): 
-                                ip_ctrl_(ip_ctrl), sys_id_(sys_id), c5gopen_period_(c5gopen_period), logger_(logger)
+  C5GOpenDriver::C5GOpenDriver( const c5gopen::C5GOpenCfg& c5gopen_cfg, 
+                                std::shared_ptr<cnr_logger::TraceLogger>& logger): 
+                                c5gopen_ip_ctrl_(c5gopen_cfg.ip_ctrl_), 
+                                c5gopen_sys_id_(c5gopen_cfg.sys_id_), 
+                                c5gopen_period_orl_(c5gopen_cfg.c5gopen_period_orl_), 
+                                max_number_of_arms_(c5gopen_cfg.max_number_of_arms_),
+                                active_arms_(c5gopen_cfg.active_arms_), 
+                                base_frame_(c5gopen_cfg.base_frame_),
+                                user_frame_(c5gopen_cfg.user_frame_),
+                                tool_frame_(c5gopen_cfg.tool_frame_),
+                                mqtt_client_id_(c5gopen_cfg.mqtt_client_id_),
+                                mqtt_broker_address_(c5gopen_cfg.mqtt_broker_address_),
+                                mqtt_port_(c5gopen_cfg.mqtt_port_),
+                                mqtt_topic_(c5gopen_cfg.mqtt_topic_),
+                                first_arm_driveon_(max_number_of_arms_, false),
+                                flag_RunningMove_(max_number_of_arms_, false),
+                                flag_ExitFromOpen_(max_number_of_arms_, false),
+                                trajectory_in_execution_(max_number_of_arms_, false),
+                                robot_movement_enabled_(max_number_of_arms_, false),
+                                modality_active_(max_number_of_arms_, 0),
+                                modality_old_(max_number_of_arms_, 0),
+                                actual_joints_position_(max_number_of_arms_),
+                                actual_cartesian_position_(max_number_of_arms_),
+                                starting_absolute_jnt_position_(max_number_of_arms_),
+                                last_absolute_target_jnt_position_rcv_(max_number_of_arms_),
+                                absolute_target_jnt_position_(max_number_of_arms_),
+                                absolute_target_jnt_position_log_(max_number_of_arms_),
+                                logger_(logger)
   {
-     bool c5gopen_active_ = true;
+    max_number_of_arms_ = active_arms_.size();  
+    system_initialized_ = false;
   };
 
   C5GOpenDriver::~C5GOpenDriver()
@@ -112,7 +136,7 @@ namespace c5gopen
   {
 #if PREEMPTIVE_RT
     realtime_utilities::period_info  pinfo;
-    if(!realtime_utilities::rt_init_thread(RT_STACK_SIZE, sched_get_priority_max(SCHED_OTHER), SCHED_OTHER, &pinfo, (long)get_c5gopen_period_in_nsec(c5gopen_period_)) )
+    if(!realtime_utilities::rt_init_thread(RT_STACK_SIZE, sched_get_priority_max(SCHED_OTHER), SCHED_OTHER, &pinfo, (long)get_c5gopen_period_in_nsec(c5gopen_period_orl_)) )
     {
       CNR_ERROR( *logger_, "Failed in setting thread rt properties. Exit. ");
       std::raise(SIGINT);
@@ -124,41 +148,38 @@ namespace c5gopen
 
     CNR_INFO( *logger_, "C5Gopen thread started. " );
 
-    if( ORLOPEN_initialize_controller ( ip_ctrl_.c_str(), sys_id_.c_str(), ORL_SILENT, ORL_CNTRL01) != ORLOPEN_RES_OK )
+    if( ORLOPEN_initialize_controller ( c5gopen_ip_ctrl_.c_str(), c5gopen_sys_id_.c_str(), ORL_SILENT, c5gopen_ctrl_idx_ ) != ORLOPEN_RES_OK )
     {
-      ORLOPEN_initialize_controller ( ip_ctrl_.c_str(), sys_id_.c_str(), ORL_VERBOSE, ORL_CNTRL01);
+      ORLOPEN_initialize_controller ( c5gopen_ip_ctrl_.c_str(), c5gopen_sys_id_.c_str(), ORL_VERBOSE, c5gopen_ctrl_idx_ );
       CNR_ERROR( *logger_, "Error in ORL_initialize_controller " );
       exit(0);
     }
     else 
-      CNR_INFO( *logger_, std::string(ip_ctrl_) + ": " + std::string(sys_id_) + ".c5g OK" );
-        
-    if ( ORLOPEN_set_period( c5gopen_period_, ORL_SILENT, ORL_CNTRL01 ) != ORLOPEN_RES_OK )
+      CNR_INFO( *logger_, std::string(c5gopen_ip_ctrl_) + ": " + std::string(c5gopen_sys_id_) + ".c5g OK" );
+
+    if ( ORLOPEN_set_period( c5gopen_period_orl_, ORL_SILENT, c5gopen_ctrl_idx_ ) != ORLOPEN_RES_OK )
     {
-      ORLOPEN_set_period( c5gopen_period_, ORL_VERBOSE, ORL_CNTRL01 );
+      ORLOPEN_set_period( c5gopen_period_orl_, ORL_VERBOSE, c5gopen_ctrl_idx_ );
       CNR_ERROR( *logger_, "Error in ORLOPEN_set_period" );
       exit(0);
     }
     else
       CNR_INFO( *logger_, "C5Gopen set period (cycle working frequency). " );
-    
-    ORL_cartesian_position bFrame, tFrame, uFrame;
-    if ( !c5gopen::set_frames( &bFrame, &tFrame, &uFrame ) )
-    {
-      CNR_ERROR( *logger_, "Error cannot set frames." );
-      exit(0);
-    }
-    
-    if ( ORL_initialize_frames( bFrame, tFrame, uFrame, ORL_SILENT, ORL_CNTRL01, ORL_ARM1 ) != ORLOPEN_RES_OK )  
-    {
-      ORL_initialize_frames( bFrame, tFrame, uFrame, ORL_VERBOSE, ORL_CNTRL01, ORL_ARM1 );
-      CNR_ERROR(  *logger_, "Error in ORL_initialize_frames." );
-      exit(0);
-    } 
 
-    if ( ORLOPEN_SetCallBackFunction( c5gopen_callback, ORL_SILENT, ORL_CNTRL01 ) < ORLOPEN_RES_OK )
+    for ( size_t& arm : active_arms_)
     {
-      ORLOPEN_SetCallBackFunction( c5gopen_callback, ORL_VERBOSE, ORL_CNTRL01 );
+      if ( ORL_initialize_frames( base_frame_, tool_frame_, user_frame_, ORL_SILENT, c5gopen_ctrl_idx_, get_orl_arm_num( arm ) ) != ORLOPEN_RES_OK )  
+      {
+        ORL_initialize_frames( base_frame_, tool_frame_, user_frame_, ORL_VERBOSE, c5gopen_ctrl_idx_, get_orl_arm_num( arm ) );
+        CNR_ERROR(  *logger_, "Error in ORL_initialize_frames." );
+        exit(0);
+      }
+    }    
+     
+
+    if ( ORLOPEN_SetCallBackFunction( c5gopen_callback, ORL_SILENT, c5gopen_ctrl_idx_ ) < ORLOPEN_RES_OK )
+    {
+      ORLOPEN_SetCallBackFunction( c5gopen_callback, ORL_VERBOSE, c5gopen_ctrl_idx_ );
       CNR_ERROR( *logger_, "Error in ORLOPEN_SetCallBackFunction.");
       exit(0);
     }
@@ -180,20 +201,22 @@ namespace c5gopen
     
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         
-    if ( initialize_control_position() < 0 ) 
+    if ( !initialize_control_position() ) 
     {
-      CNR_ERROR( *logger_, "Error in initialize_control_position() function." );
+      CNR_ERROR( *logger_, "Can't initialize control position." );
       exit(0);
     }
 
     CNR_INFO( *logger_, "C5Gopen theread started." );
+
+    system_initialized_ = true;
 
     // Enter in the infinite loop
     while ( !std::all_of( std::begin(flag_ExitFromOpen_), std::end(flag_ExitFromOpen_), [](bool i) { return i; } ) )
     {
       if ( ORLOPEN_GetPowerlinkState(ORL_SILENT) != PWL_ACTIVE )
       {
-        for (int8_t iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
+        for ( size_t iArm=0; iArm<max_number_of_arms_; iArm++ )
           set_exit_from_open(iArm);
       }
  
@@ -205,7 +228,7 @@ namespace c5gopen
     CNR_INFO(*logger_, "c5gopen communication stopped.");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    ORL_terminate_controller( ORL_VERBOSE, ORL_CNTRL01 );
+    ORL_terminate_controller( ORL_VERBOSE, c5gopen_ctrl_idx_ );
     CNR_INFO(*logger_, "c5gopen controller terminated.");
 
     c5gopen_threads_status_ = thread_status::CLOSED;
@@ -246,27 +269,27 @@ namespace c5gopen
         
         if ( gl.compare("All") == 0 )
         {
-          for (int8_t iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
+          for (size_t iArm=0; iArm<max_number_of_arms_; iArm++ )
             set_exit_from_open( iArm );
 
           CNR_INFO( *logger_, "... preparing to exit from c5gopen wait please... " ); 
         }
-        else if ( gl.compare("1") == 0 && std::stoi(gl) <= MAX_NUM_ARMS )
+        else if ( gl.compare("1") == 0 && std::stoul(gl) <= max_number_of_arms_ )
         {
           set_exit_from_open( ORL_ARM1 );
           CNR_INFO( *logger_, " ... preparing to exit from ARM 1 open modelity wait please... " );
         }
-        else if ( gl.compare("2") == 0 && std::stoi(gl) <= MAX_NUM_ARMS )
+        else if ( gl.compare("2") == 0 && std::stoul(gl) <= max_number_of_arms_ )
         {
           set_exit_from_open( ORL_ARM2 );
           CNR_INFO( *logger_, " ... preparing to exit from ARM 2 open modelity wait please... " );
         }
-        else if ( gl.compare("3") == 0 && std::stoi(gl) <= MAX_NUM_ARMS )
+        else if ( gl.compare("3") == 0 && std::stoul(gl) <= max_number_of_arms_ )
         {
           set_exit_from_open( ORL_ARM3 );
           CNR_INFO( *logger_, " ... preparing to exit from ARM 3 open modelity wait please... " );
         }
-        else if ( gl.compare("4") == 0 && std::stoi(gl) <= MAX_NUM_ARMS )
+        else if ( gl.compare("4") == 0 && std::stoul(gl) <= max_number_of_arms_ )
         {
           set_exit_from_open( ORL_ARM4 );
           CNR_INFO( *logger_, " ... preparing to exit from ARM 4 open modelity wait please... " );
@@ -284,35 +307,39 @@ namespace c5gopen
     CNR_INFO( *logger_, "Console theread closed." );
   }
 
-  int C5GOpenDriver::initialize_control_position ( void )
+  bool C5GOpenDriver::initialize_control_position ( void )
   {
-    int8_t modality;
+    size_t modality;
     long output_jntmask;
-    char s_modality[40];
+    std::string s_modality;
     ORL_System_Variable orl_sys_var;
 
     if ( ORLOPEN_GetPowerlinkState(ORL_VERBOSE) == PWL_ACTIVE )
     {
-      for ( int8_t iArm=0; iArm<MAX_NUM_ARMS; iArm++ )
+      for ( size_t iArm=0; iArm<max_number_of_arms_; iArm++ )
       {
-        modality        = ORLOPEN_GetModeMasterAx( ORL_SILENT, ORL_CNTRL01, iArm );
-        output_jntmask  = ORLOPEN_GetOpenMask( ORL_SILENT,ORL_CNTRL01, iArm );
+        modality        = ORLOPEN_GetModeMasterAx( ORL_SILENT, c5gopen_ctrl_idx_, iArm );
+        output_jntmask  = ORLOPEN_GetOpenMask( ORL_SILENT, c5gopen_ctrl_idx_, iArm );
         
-        decode_modality( modality, s_modality, false );
+        if( !decode_modality( modality, s_modality ) )
+        {
+          CNR_ERROR( *logger_, "Can't decode C5GOpen modality.");
+          return false;
+        }
         
         CNR_INFO (*logger_, "\n------ ARM " << iArm+1 << " MODE " << modality << " " << s_modality << " - " 
-                              << ( ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, ORL_CNTRL01, iArm) == CRCOPEN_STS_DRIVEON ) ? "DRIVE_ON" : "DRIVEOFF")
+                              << ( ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, c5gopen_ctrl_idx_, iArm) == CRCOPEN_STS_DRIVEON ) ? "DRIVE_ON" : "DRIVEOFF")
                               << " mask " << (unsigned int)output_jntmask );              
                 
-        if ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, ORL_CNTRL01, iArm) != CRCOPEN_STS_DRIVEON )
+        if ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, c5gopen_ctrl_idx_, iArm) != CRCOPEN_STS_DRIVEON )
           CNR_WARN( *logger_, "ATTENTION: The system is in DRIVEOFF status, first syncronized position can't be reliable, don't forget the DRIVEON! ");
         
         if (first_arm_driveon_[iArm])
         {
-          ORLOPEN_sync_position(&actual_joints_position_[iArm], ORL_SILENT, ORL_CNTRL01, iArm);
+          ORLOPEN_sync_position(&actual_joints_position_[iArm], ORL_SILENT, c5gopen_ctrl_idx_, iArm);
         }
         
-        ORL_direct_kinematics(&actual_cartesian_position_[iArm],&actual_joints_position_[iArm],ORL_SILENT, ORL_CNTRL01,iArm);
+        ORL_direct_kinematics(&actual_cartesian_position_[iArm],&actual_joints_position_[iArm], ORL_SILENT, c5gopen_ctrl_idx_,iArm);
         
         CNR_INFO( *logger_, "ORLOPEN_sync_position Joint " 
                             << actual_joints_position_[iArm].value[ORL_AX1] << " " 
@@ -339,18 +366,16 @@ namespace c5gopen
         
         orl_sys_var.ctype = ORL_INT;
         orl_sys_var.iv = 20;
-        ORL_set_data( orl_sys_var, ORL_SILENT, ORL_CNTRL01 );
+        ORL_set_data( orl_sys_var, ORL_SILENT, c5gopen_ctrl_idx_ );
       }
     }
     else
-      return 1;
-
-    system_initialized_ = true;
+      return false;
     
-    return 0;
+    return true;
   }
 
-  void C5GOpenDriver::set_exit_from_open( const int8_t& iArm )
+  void C5GOpenDriver::set_exit_from_open( const size_t& iArm )
   {
     mtx_.lock();
     flag_ExitFromOpen_[iArm]         = true;
@@ -362,32 +387,36 @@ namespace c5gopen
   { 
     long mask;
     bool arm_driveon;
-    char s_modality[40];
-    char flag_new_modality[MAX_NUM_ARMS];
+    std::string s_modality;
+    char flag_new_modality[g_driver->max_number_of_arms_];
     
     
-    for ( int8_t iArm=0; iArm<MAX_NUM_ARMS; iArm++ ) 
+    for ( size_t iArm=0; iArm<g_driver->max_number_of_arms_; iArm++ ) 
     {
       if ( !g_driver->flag_ExitFromOpen_[iArm] )
       {
         flag_new_modality[iArm]           = false;
         g_driver->modality_old_[iArm]     = g_driver->modality_active_[iArm];
         
-        mask = ORLOPEN_GetOpenMask      ( ORL_SILENT,ORL_CNTRL01, iArm );
-        g_driver->modality_active_[iArm]  = ORLOPEN_GetModeMasterAx  ( ORL_SILENT,ORL_CNTRL01, iArm );
+        mask = ORLOPEN_GetOpenMask      ( ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );
+        g_driver->modality_active_[iArm]  = ORLOPEN_GetModeMasterAx  ( ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );
         
         
-        arm_driveon = ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, ORL_CNTRL01, iArm) == CRCOPEN_STS_DRIVEON ) ? true : false;
+        arm_driveon = ( ORLOPEN_GetStatusMasterAx(ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm) == CRCOPEN_STS_DRIVEON ) ? true : false;
         
         if ( arm_driveon && ! g_driver->first_arm_driveon_[iArm] )
            g_driver->first_arm_driveon_[iArm] = true;
         
-        decode_modality( (unsigned int8_t) g_driver->modality_active_[iArm], s_modality, false );
+        if ( !decode_modality( (size_t) g_driver->modality_active_[iArm], s_modality ))
+        {
+          CNR_WARN( g_driver->logger_, "Can't decode C5GOpen modality: skipping c5gopen callback execution.");
+          continue;
+        }
             
         if(  g_driver->modality_old_[iArm] !=  g_driver->modality_active_[iArm] ) 
         {
           flag_new_modality[iArm] = true;
-          CNR_INFO( g_driver->logger_, "ARM " << iArm+1 << " Modality" << (unsigned int8_t)g_driver->modality_active_[iArm] << " " <<  s_modality );
+          CNR_INFO( g_driver->logger_, "ARM " << iArm+1 << " Modality" << (size_t)g_driver->modality_active_[iArm] << " " <<  s_modality );
         }   
         else 
           flag_new_modality[iArm] = false;
@@ -396,24 +425,24 @@ namespace c5gopen
         {
           // LISTEN MODE
           case CRCOPEN_LISTEN:
-            if ( g_driver->system_initialized_)
+            if ( g_driver->system_initialized_ )
             { 
               if (  g_driver->first_arm_driveon_[iArm] )
               {
-                if ( ORLOPEN_sync_position( & g_driver->actual_joints_position_[iArm], ORL_SILENT, ORL_CNTRL01, iArm ) < ORLOPEN_RES_OK )
+                if ( ORLOPEN_sync_position( &g_driver->actual_joints_position_[iArm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm ) < ORLOPEN_RES_OK )
                 {
-                  ORLOPEN_sync_position( & g_driver->actual_joints_position_[iArm], ORL_VERBOSE, ORL_CNTRL01, iArm );
+                  ORLOPEN_sync_position( &g_driver->actual_joints_position_[iArm], ORL_VERBOSE, g_driver->c5gopen_ctrl_idx_, iArm );
                   CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_sync_position.");
                   exit(0);
                 }
               }
               
-              ORL_joint_value actual_joints_position_tmp [MAX_NUM_ARMS];
-              ORL_cartesian_position actual_cartesian_position_tmp [MAX_NUM_ARMS];
+              ORL_joint_value actual_joints_position_tmp [g_driver->max_number_of_arms_];
+              ORL_cartesian_position actual_cartesian_position_tmp [g_driver->max_number_of_arms_];
               
-              if ( ORLOPEN_get_pos_measured(&actual_joints_position_tmp[iArm],&actual_cartesian_position_tmp[iArm], LAST_MESS, ORL_SILENT, ORL_CNTRL01, iArm ) < ORLOPEN_RES_OK )
+              if ( ORLOPEN_get_pos_measured(&actual_joints_position_tmp[iArm],&actual_cartesian_position_tmp[iArm], LAST_MESS, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm ) < ORLOPEN_RES_OK )
               {
-                ORLOPEN_get_pos_measured(&actual_joints_position_tmp[iArm],&actual_cartesian_position_tmp[iArm], LAST_MESS, ORL_VERBOSE, ORL_CNTRL01, iArm );
+                ORLOPEN_get_pos_measured(&actual_joints_position_tmp[iArm],&actual_cartesian_position_tmp[iArm], LAST_MESS, ORL_VERBOSE, g_driver->c5gopen_ctrl_idx_, iArm );
                 CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_get_pos_measured.");
                 exit(0);
               }      
@@ -432,7 +461,7 @@ namespace c5gopen
 
           // ABSOLUTE MODE     
           case CRCOPEN_POS_ABSOLUTE:
-            if (g_driver->c5gopen_cycle_active_)
+            if ( g_driver->system_initialized_ )
             {
               if ( (flag_new_modality[iArm]) && ( g_driver->modality_active_[iArm] == CRCOPEN_POS_ABSOLUTE) )
               {
@@ -443,22 +472,22 @@ namespace c5gopen
             
             if ( arm_driveon )
             {
-              if (  g_driver->robot_movement_enabled_[iArm] )
+              if ( g_driver->robot_movement_enabled_[iArm] )
               {  
-                if ( ! g_driver->absolute_target_jnt_position_[iArm].empty() )
+                if ( !g_driver->absolute_target_jnt_position_[iArm].empty() )
                 {
                   memcpy( &g_driver->last_absolute_target_jnt_position_rcv_[iArm], & g_driver->absolute_target_jnt_position_[iArm].front(), sizeof(absolute_target_position_t ));
                    g_driver->absolute_target_jnt_position_[iArm].pop_front();
                   
-                  if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                  if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm ) != ORLOPEN_RES_OK )
                     CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." );
                   
-                  ORL_axis_2_joints( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm );
+                  ORL_axis_2_joints( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );
 
                   g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
-                  ORL_joints_conversion( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
+                  ORL_joints_conversion( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );
                   
-                  if ( ORLOPEN_set_ExtData( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                  if ( ORLOPEN_set_ExtData( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, &mask, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm ) != ORLOPEN_RES_OK )
                     CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_ExtData." );
                   
                   if (  g_driver->absolute_target_jnt_position_log_[iArm].full() )
@@ -468,15 +497,15 @@ namespace c5gopen
                 }
                 else
                 {                
-                  if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                  if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm ) != ORLOPEN_RES_OK )
                     CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." );
                   
-                  ORL_axis_2_joints( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm );
+                  ORL_axis_2_joints( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_pos, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );
                   
                   g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
-                  ORL_joints_conversion( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
+                  ORL_joints_conversion( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );
                   
-                  if ( ORLOPEN_set_ExtData( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                  if ( ORLOPEN_set_ExtData( &g_driver->last_absolute_target_jnt_position_rcv_[iArm].target_vel, &mask, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm ) != ORLOPEN_RES_OK )
                     CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_ExtData." );
                   
                   if (  g_driver->absolute_target_jnt_position_log_[iArm].full() )
@@ -490,15 +519,15 @@ namespace c5gopen
               {
                 g_driver->starting_absolute_jnt_position_[iArm].target_pos.unit_type = ORL_POSITION_LINK_DEGREE;
                 
-                if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->starting_absolute_jnt_position_[iArm].target_pos, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->starting_absolute_jnt_position_[iArm].target_pos, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm ) != ORLOPEN_RES_OK )
                   CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree.");
                 
-                ORL_axis_2_joints( &g_driver->starting_absolute_jnt_position_[iArm].target_pos , ORL_SILENT, ORL_CNTRL01, iArm );   
+                ORL_axis_2_joints( &g_driver->starting_absolute_jnt_position_[iArm].target_pos , ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );   
                 
                 g_driver->starting_absolute_jnt_position_[iArm].target_vel.unit_type = ORL_SPEED_LINK_DEGREE_SEC;
-                ORL_joints_conversion( &g_driver->starting_absolute_jnt_position_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, ORL_CNTRL01, iArm );
+                ORL_joints_conversion( &g_driver->starting_absolute_jnt_position_[iArm].target_vel, ORL_SPEED_MOTORROUNDS, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );
                             
-                if ( ORLOPEN_set_ExtData( &g_driver->starting_absolute_jnt_position_[iArm].target_vel, &mask, ORL_SILENT, ORL_CNTRL01, iArm ) != ORLOPEN_RES_OK )
+                if ( ORLOPEN_set_ExtData( &g_driver->starting_absolute_jnt_position_[iArm].target_vel, &mask, ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm ) != ORLOPEN_RES_OK )
                   CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_ExtData.");
                 
                 if (  g_driver->absolute_target_jnt_position_log_[iArm].full() )
@@ -532,7 +561,7 @@ namespace c5gopen
       }
       
       if ( g_driver->flag_ExitFromOpen_[iArm] )
-        ORLOPEN_ExitFromOpen( ORL_SILENT,  ORL_CNTRL01, iArm );
+        ORLOPEN_ExitFromOpen( ORL_SILENT, g_driver->c5gopen_ctrl_idx_, iArm );
       
     }
     

@@ -1,6 +1,5 @@
-#include "mqtt.h"
-#include "dynamic_callback.h"
-
+#include <comau_c5gopen_lpc/mqtt.h>
+#include <comau_c5gopen_lpc/dynamic_callback.h>
 
 OnConnectCallbackBase* AvailableOnConnectCallbackSlots[] = {
     new OnConnectDynamicCallback<0x00>()
@@ -121,7 +120,6 @@ void OnPublishCallbackBase::StaticInvoke(int context,  void *obj, uint16_t mid)
     auto p = (AvailableOnPublishCallbackSlots[context]->m_pClass);
     return (p->*(AvailableOnPublishCallbackSlots[context]->m_pMethod)) (obj, mid);
 }
-
 
 
 
