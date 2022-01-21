@@ -48,7 +48,7 @@ int  main (int argc, char **argv)
     c5gopen_cfg_file_name = std::string(argv[1]);
   else
   {
-    std::cout << cnr_logger::RED() <<  "ERROR: wrong number of input to the c5gopen LPC node. The right order is: C5GOPEN_CONFIG_FILE_NAME LOGGER_CONFIG_FILE_NAME" << cnr_logger::RESET() << std::endl;
+    std::cout << cnr_logger::RED() <<  "ERROR: wrong number of input to the c5gopen LPC node. The right order is: C5GOPEN_CONFIG_FILE_NAME" << cnr_logger::RESET() << std::endl;
     return -1;
   }
 
@@ -62,8 +62,6 @@ int  main (int argc, char **argv)
   try
   {
     c5gopen::C5GOpenDriver* c5gopen_driver= new c5gopen::C5GOpenDriver( c5gopen_cfg, logger);
-
-    return 0;
 
     if ( !c5gopen_driver->init() ) 
     {

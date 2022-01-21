@@ -57,15 +57,15 @@ namespace c5gopen
     
     if (!decode_c5gopen_frequency( cfg_file["c5gopen_ctrl"]["period"].as<double>(), c5gopen_cfg.c5gopen_period_orl_ ) )
       return false;
-    
+
     // Set frames
-    if ( !set_frames( cfg_file["c5gopen_ctrl"]["base_frame"].as<std::vector<double>>(), c5gopen_cfg.base_frame_ ) )
+    if ( !set_frames( cfg_file["robot_frames"]["base_frame"].as<std::vector<double>>(), c5gopen_cfg.base_frame_ ) )
       return false;
 
-    if ( !set_frames( cfg_file["c5gopen_ctrl"]["user_frame"].as<std::vector<double>>(), c5gopen_cfg.user_frame_ ) )
+    if ( !set_frames( cfg_file["robot_frames"]["user_frame"].as<std::vector<double>>(), c5gopen_cfg.user_frame_ ) )
       return false;
 
-     if ( !set_frames( cfg_file["c5gopen_ctrl"]["tool_frame"].as<std::vector<double>>(), c5gopen_cfg.tool_frame_ ) )
+    if ( !set_frames( cfg_file["robot_frames"]["tool_frame"].as<std::vector<double>>(), c5gopen_cfg.tool_frame_ ) )
       return false;
 
     c5gopen_cfg.mqtt_client_id_      = cfg_file["mqtt"]["client_id"].as<std::string>();
@@ -91,7 +91,7 @@ namespace c5gopen
     }
   }
 
-  size_t get_arm( const size_t& arm_idx )
+  size_t get_orl_arm_num( const size_t& arm_idx )
   {     
     if (arm_idx > 0 && arm_idx <= 4)
       return arm_idx-1;
