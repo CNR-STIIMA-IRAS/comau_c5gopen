@@ -48,12 +48,16 @@ int  main (int argc, char **argv)
     c5gopen_cfg_file_name = std::string(argv[1]);
   else
   {
-    std::cout << cnr_logger::RED() <<  "ERROR: wrong number of input to the c5gopen LPC node. The right order is: C5GOPEN_CONFIG_FILE_NAME" << cnr_logger::RESET() << std::endl;
+    std::cout << cnr_logger::RED() <<  "Error: wrong number of input to the c5gopen LPC node. The right order is: C5GOPEN_CONFIG_FILE_NAME" << cnr_logger::RESET() << std::endl;
     return -1;
   }
 
   c5gopen::C5GOpenCfg c5gopen_cfg;
-  c5gopen::load_c5gopen_parameters(c5gopen_cfg_file_name, c5gopen_cfg);
+  if (!c5gopen::load_c5gopen_parameters(c5gopen_cfg_file_name, c5gopen_cfg))
+  {
+    std::cout << cnr_logger::RED() <<  "Error: cannot load the configuration parameters, please check the configuration file: " << c5gopen_cfg_file_name << cnr_logger::RESET() << std::endl;
+    return -1;
+  }
  
   // Create logger object
   std::shared_ptr<cnr_logger::TraceLogger> logger(new cnr_logger::TraceLogger( "c5gopen", c5gopen_cfg.cnr_logger_cfg_file, true, true));  

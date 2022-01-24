@@ -35,6 +35,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <fstream>
 
 #include <cnr_logger/cnr_logger_macros.h>
 
@@ -46,35 +47,156 @@ namespace c5gopen
   bool load_c5gopen_parameters( const std::string& config_file_name, C5GOpenCfg& c5gopen_cfg )
   {
     // Load parameters form YAML file
+    std::ifstream if1(config_file_name.c_str());
+    if (!if1.good())
+    {
+      std::cout << cnr_logger::RED() << "Error: the configuration file: " << config_file_name << " does not exists." << cnr_logger::RESET() << std::endl;
+      return false;
+    }  
+      
     YAML::Node cfg_file = YAML::LoadFile(config_file_name);
 
-    c5gopen_cfg.ctrl_idx_  = get_orl_ctrl_num(cfg_file["c5gopen_ctrl"]["ctrl_idx"].as<size_t>());
-    c5gopen_cfg.ip_ctrl_   = cfg_file["c5gopen_ctrl"]["ip_ctrl"].as<std::string>();      
-    c5gopen_cfg.sys_id_    = cfg_file["c5gopen_ctrl"]["sys_id"].as<std::string>();
+    // Extract parameters from configuration file
+
+    // Load C5GOpen controller parameters
+    if ( !( cfg_file["c5gopen_ctrl"]["ctrl_idx"] && cfg_file["c5gopen_ctrl"]["ctrl_idx"].IsScalar() ))
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'c5gopen_ctrl' -> 'ctrl_idx' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+      c5gopen_cfg.ctrl_idx_ = get_orl_ctrl_num(cfg_file["c5gopen_ctrl"]["ctrl_idx"].as<size_t>());
     
-    std::vector<size_t> active_arms_ = cfg_file["c5gopen_ctrl"]["active_arms"].as<std::vector<size_t>>();
-    c5gopen_cfg.max_number_of_arms_  = active_arms_.size();
+
+    if ( !( cfg_file["c5gopen_ctrl"]["ip_ctrl"] && cfg_file["c5gopen_ctrl"]["ip_ctrl"].IsScalar() ) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'c5gopen_ctrl' -> 'ip_ctrl' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+      c5gopen_cfg.ip_ctrl_ = cfg_file["c5gopen_ctrl"]["ip_ctrl"].as<std::string>();   
+
+
+    if ( !( cfg_file["c5gopen_ctrl"]["sys_id"] && cfg_file["c5gopen_ctrl"]["sys_id"].IsScalar() ) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'c5gopen_ctrl' -> 'sys_id' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+      c5gopen_cfg.sys_id_ = cfg_file["c5gopen_ctrl"]["sys_id"].as<std::string>();
     
-    if (!decode_c5gopen_frequency( cfg_file["c5gopen_ctrl"]["period"].as<double>(), c5gopen_cfg.c5gopen_period_orl_ ) )
+
+    if ( !(cfg_file["c5gopen_ctrl"]["active_arms"] && cfg_file["c5gopen_ctrl"]["active_arms"].IsSequence() ) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'c5gopen_ctrl' -> 'active_arms' " << cnr_logger::RESET() << std::endl;
       return false;
+    }
+    else
+      c5gopen_cfg.active_arms_ = cfg_file["c5gopen_ctrl"]["active_arms"].as<std::vector<size_t>>();
+     
+    c5gopen_cfg.max_number_of_arms_ = c5gopen_cfg.active_arms_.size();
+    
 
-    // Set frames
-    if ( !set_frames( cfg_file["robot_frames"]["base_frame"].as<std::vector<double>>(), c5gopen_cfg.base_frame_ ) )
+    if ( !(cfg_file["c5gopen_ctrl"]["period"] && cfg_file["c5gopen_ctrl"]["period"].IsScalar() ))
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'c5gopen_ctrl' -> 'period' " << cnr_logger::RESET() << std::endl;
       return false;
+    }
+    else
+    {
+      if (!decode_c5gopen_frequency( cfg_file["c5gopen_ctrl"]["period"].as<double>(), c5gopen_cfg.c5gopen_period_orl_ ) )
+        return false;
+    }
 
-    if ( !set_frames( cfg_file["robot_frames"]["user_frame"].as<std::vector<double>>(), c5gopen_cfg.user_frame_ ) )
+    // Load robot frames
+    if ( !(cfg_file["robot_frames"]["base_frame"] && cfg_file["robot_frames"]["base_frame"].IsSequence() ))
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'robot_frames' -> 'base_frame' " << cnr_logger::RESET() << std::endl;
       return false;
+    }
+    else
+    {
+      if ( !set_frames( cfg_file["robot_frames"]["base_frame"].as<std::vector<double>>(), c5gopen_cfg.base_frame_ ) )
+        return false;
+    }
 
-    if ( !set_frames( cfg_file["robot_frames"]["tool_frame"].as<std::vector<double>>(), c5gopen_cfg.tool_frame_ ) )
+    if ( !(cfg_file["robot_frames"]["user_frame"] && cfg_file["robot_frames"]["user_frame"].IsSequence() ))
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'robot_frames' -> 'user_frame' " << cnr_logger::RESET() << std::endl;
       return false;
+    }
+    else
+    {
+      if ( !set_frames( cfg_file["robot_frames"]["user_frame"].as<std::vector<double>>(), c5gopen_cfg.user_frame_ ) )
+        return false;
+    }
 
-    c5gopen_cfg.mqtt_client_id_      = cfg_file["mqtt"]["client_id"].as<std::string>();
-    c5gopen_cfg.mqtt_broker_address_ = cfg_file["mqtt"]["broker_address"].as<std::string>();
-    c5gopen_cfg.mqtt_port_           = cfg_file["mqtt"]["mqtt_port"].as<std::string>();
-    c5gopen_cfg.mqtt_topic_          = cfg_file["mqtt"]["mqtt_topic"].as<std::string>();
+    if ( !(cfg_file["robot_frames"]["tool_frame"] && cfg_file["robot_frames"]["tool_frame"].IsSequence() ))
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'robot_frames' -> 'tool_frame' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+    {    
+      if ( !set_frames( cfg_file["robot_frames"]["tool_frame"].as<std::vector<double>>(), c5gopen_cfg.tool_frame_ ) )
+        return false;
+    }
 
-    c5gopen_cfg.cnr_logger_cfg_file  = cfg_file["cnr_logger"]["logger_cfg_file"].as<std::string>();
 
+    // Load MQTT configuration parameters
+    if ( !(cfg_file["mqtt"]["client_id"] && cfg_file["mqtt"]["client_id"].IsScalar()) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'client_id' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+      c5gopen_cfg.mqtt_client_id_ = cfg_file["mqtt"]["client_id"].as<std::string>();
+    
+
+    if ( !(cfg_file["mqtt"]["broker_address"] && cfg_file["mqtt"]["broker_address"].IsScalar()) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'broker_address' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+      c5gopen_cfg.mqtt_broker_address_ = cfg_file["mqtt"]["broker_address"].as<std::string>();
+    
+
+    if ( !(cfg_file["mqtt"]["mqtt_port"] && cfg_file["mqtt"]["mqtt_port"].IsScalar()) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'mqtt_port' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+      c5gopen_cfg.mqtt_port_           = cfg_file["mqtt"]["mqtt_port"].as<std::string>();
+    
+
+    if ( !(cfg_file["mqtt"]["mqtt_topic"] && cfg_file["mqtt"]["mqtt_topic"].IsScalar()) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'mqtt_topic' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+      c5gopen_cfg.mqtt_topic_          = cfg_file["mqtt"]["mqtt_topic"].as<std::string>();
+
+
+    // Load cnr_logger configuration parameters
+    if ( !(cfg_file["cnr_logger"]["logger_cfg_file"] && cfg_file["cnr_logger"]["logger_cfg_file"].IsScalar()) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'cnr_logger' -> 'logger_cfg_file' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+    {
+      c5gopen_cfg.cnr_logger_cfg_file  = cfg_file["cnr_logger"]["logger_cfg_file"].as<std::string>();
+      std::ifstream if2(c5gopen_cfg.cnr_logger_cfg_file.c_str());
+      if (!if2.good())
+      {
+        std::cout << cnr_logger::RED() << "Error: the CNR_LOGGER configuration file: " << c5gopen_cfg.cnr_logger_cfg_file << " does not exists." << cnr_logger::RESET() << std::endl;
+        return false;
+      }  
+    }
+      
     std::cout << cnr_logger::WHITE() << "Configuration parameter loaded from file: " << config_file_name << cnr_logger::RESET() << std::endl;
 
     return true;
