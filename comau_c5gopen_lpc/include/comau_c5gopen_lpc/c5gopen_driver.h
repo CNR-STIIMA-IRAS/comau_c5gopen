@@ -150,9 +150,6 @@ namespace c5gopen
     std::map<size_t,realtime_buffer::CircBufferUnqPtr<absolute_target_position_t>> absolute_target_jnt_position_;
     std::map<size_t,realtime_buffer::CircBufferUnqPtr<absolute_target_position_t>> absolute_target_jnt_position_log_;
     
-    // std::map<size_t,realtime_buffer::CircBuffer<absolute_target_position_t>> absolute_target_jnt_position_;
-    // std::map<size_t,realtime_buffer::CircBuffer<absolute_target_position_t>> absolute_target_jnt_position_log_;
-
     // C5GOpen class internal methods
     void c5gopen_thread( );
     void com_thread( );

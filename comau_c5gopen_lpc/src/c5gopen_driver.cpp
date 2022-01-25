@@ -57,6 +57,7 @@ namespace c5gopen
 
   C5GOpenDriver::C5GOpenDriver( const c5gopen::C5GOpenCfg& c5gopen_cfg, 
                                 std::shared_ptr<cnr_logger::TraceLogger>& logger): 
+                                c5gopen_ctrl_idx_(c5gopen_cfg.ctrl_idx_),  
                                 c5gopen_ip_ctrl_(c5gopen_cfg.ip_ctrl_), 
                                 c5gopen_sys_id_(c5gopen_cfg.sys_id_), 
                                 c5gopen_period_orl_(c5gopen_cfg.c5gopen_period_orl_), 
@@ -163,8 +164,6 @@ namespace c5gopen
     c5gopen_threads_status_ = thread_status::RUNNING;
 
     CNR_INFO( *logger_, "C5Gopen thread started. " );
-
-    CNR_WARN( *logger_, "C5Gopen thread started: " <<  c5gopen_ip_ctrl_  << "  " << c5gopen_sys_id_ << "  " <<  c5gopen_ctrl_idx_ );
 
     if( ORLOPEN_initialize_controller ( c5gopen_ip_ctrl_.c_str(), c5gopen_sys_id_.c_str(), ORL_SILENT, c5gopen_ctrl_idx_ ) != ORLOPEN_RES_OK )
     {

@@ -67,7 +67,6 @@ namespace c5gopen
     else
       c5gopen_cfg.ctrl_idx_ = get_orl_ctrl_num(cfg_file["c5gopen_ctrl"]["ctrl_idx"].as<size_t>());
     
-
     if ( !( cfg_file["c5gopen_ctrl"]["ip_ctrl"] && cfg_file["c5gopen_ctrl"]["ip_ctrl"].IsScalar() ) )
     {
       std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'c5gopen_ctrl' -> 'ip_ctrl' " << cnr_logger::RESET() << std::endl;
