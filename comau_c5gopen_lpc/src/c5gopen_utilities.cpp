@@ -168,7 +168,7 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.mqtt_port_           = cfg_file["mqtt"]["mqtt_port"].as<std::string>();
+      c5gopen_cfg.mqtt_port_ = cfg_file["mqtt"]["mqtt_port"].as<std::string>();
     
 
     if ( !(cfg_file["mqtt"]["mqtt_topic"] && cfg_file["mqtt"]["mqtt_topic"].IsScalar()) )
@@ -177,7 +177,7 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.mqtt_topic_          = cfg_file["mqtt"]["mqtt_topic"].as<std::string>();
+      c5gopen_cfg.mqtt_topic_ = cfg_file["mqtt"]["mqtt_topic"].as<std::string>();
 
 
     // Load cnr_logger configuration parameters

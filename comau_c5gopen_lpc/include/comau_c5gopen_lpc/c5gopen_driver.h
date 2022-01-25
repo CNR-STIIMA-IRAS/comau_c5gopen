@@ -35,15 +35,12 @@
 
 #ifndef __C5GOPEN_LPC_NODE__
 #define __C5GOPEN_LPC_NODE__
-
+#include <map>
 #include <string>
 #include <vector>
-
 #include <sched.h>
 #include <stdlib.h>
-
 #include <thread>
-#include <boost/circular_buffer.hpp>
 
 #include <eORL.h>
 
@@ -58,7 +55,6 @@
 
 #define target_pos_max_buff_len 100
 #define target_pos_max_buff_log_len 300
-#define delta_target_cart_pos_max_len 10
 namespace c5gopen
 {   
   struct absolute_target_position_t
@@ -137,29 +133,32 @@ namespace c5gopen
     thread_status loop_console_threads_status_ = thread_status::BEFORE_RUN;
 
     // Robot data
-    std::vector<bool> first_arm_driveon_;
-    std::vector<bool> flag_RunningMove_;
-    std::vector<bool> flag_ExitFromOpen_;
-    std::vector<bool> trajectory_in_execution_;
-    std::vector<bool> robot_movement_enabled_;
-    std::vector<size_t> modality_active_;
-    std::vector<size_t> modality_old_;
+    std::map<size_t,bool> first_arm_driveon_;
+    std::map<size_t,bool> flag_RunningMove_; // to be verified if necessary
+    std::map<size_t,bool> flag_ExitFromOpen_;
+    std::map<size_t,bool> trajectory_in_execution_; // To be verified if it is necessary
+    std::map<size_t,bool> robot_movement_enabled_;
+    std::map<size_t,size_t> modality_active_;
+    std::map<size_t,size_t> modality_old_;
 
-    std::vector<ORL_joint_value> actual_joints_position_;
-    std::vector<ORL_cartesian_position> actual_cartesian_position_;
+    std::map<size_t,ORL_joint_value> actual_joints_position_;
+    std::map<size_t,ORL_cartesian_position> actual_cartesian_position_;
 
-    std::vector<absolute_target_position_t> starting_absolute_jnt_position_;
-    std::vector<absolute_target_position_t> last_absolute_target_jnt_position_rcv_;
+    std::map<size_t,absolute_target_position_t> starting_absolute_jnt_position_;
+    std::map<size_t,absolute_target_position_t> last_absolute_target_jnt_position_rcv_;
 
-    std::vector<realtime_buffer::circ_buffer<absolute_target_position_t>> absolute_target_jnt_position_;
-    std::vector<realtime_buffer::circ_buffer<absolute_target_position_t>> absolute_target_jnt_position_log_;
+    std::map<size_t,realtime_buffer::CircBufferUnqPtr<absolute_target_position_t>> absolute_target_jnt_position_;
+    std::map<size_t,realtime_buffer::CircBufferUnqPtr<absolute_target_position_t>> absolute_target_jnt_position_log_;
+    
+    // std::map<size_t,realtime_buffer::CircBuffer<absolute_target_position_t>> absolute_target_jnt_position_;
+    // std::map<size_t,realtime_buffer::CircBuffer<absolute_target_position_t>> absolute_target_jnt_position_log_;
 
     // C5GOpen class internal methods
     void c5gopen_thread( );
     void com_thread( );
     void loop_console_thread( );
     bool initialize_control_position( void );
-    void set_exit_from_open( const size_t& iArm );
+    void set_exit_from_open( const size_t& arm );
 
   };
 
