@@ -44,7 +44,7 @@ namespace c5gopen
 {
   struct C5GOpenCfg 
   {
-    size_t ctrl_idx_;
+    size_t ctrl_idx_orl_;
     std::string ip_ctrl_;
     std::string sys_id_;
 

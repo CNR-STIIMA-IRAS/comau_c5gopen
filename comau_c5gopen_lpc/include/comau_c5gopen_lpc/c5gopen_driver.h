@@ -57,16 +57,18 @@
 #define target_pos_max_buff_log_len 300
 namespace c5gopen
 {   
-  struct absolute_target_position_t
+  struct RobotJointState
   {
+    ORL_joint_value real_pos;
+    ORL_joint_value real_vel;
     ORL_joint_value target_pos;
     ORL_joint_value target_vel;
   }__attribute__ ( ( packed ) ); 
 
-  struct absolute_real_position_t
+  struct RobotCartState
   {
-    ORL_joint_value real_pos;
-    ORL_joint_value real_vel;
+    ORL_cartesian_position real_pos;
+    ORL_cartesian_position target_pos;
   }__attribute__ ( ( packed ) ); 
 
   enum thread_status
@@ -101,7 +103,7 @@ namespace c5gopen
     bool system_initialized_;
 
     // C5GOpen configuration parameters
-    size_t c5gopen_ctrl_idx_;
+    size_t c5gopen_ctrl_idx_orl_;
     std::string c5gopen_ip_ctrl_;
     std::string c5gopen_sys_id_;
 
@@ -142,13 +144,18 @@ namespace c5gopen
     std::map<size_t,size_t> modality_old_;
 
     std::map<size_t,ORL_joint_value> actual_joints_position_;
+    std::map<size_t,ORL_joint_value> starting_jnt_position_;
+    std::map<size_t,ORL_joint_value> last_jnt_target_rcv_;
     std::map<size_t,ORL_cartesian_position> actual_cartesian_position_;
 
-    std::map<size_t,absolute_target_position_t> starting_absolute_jnt_position_;
-    std::map<size_t,absolute_target_position_t> last_absolute_target_jnt_position_rcv_;
+    std::map<size_t,realtime_buffer::CircBufferUnqPtr<RobotJointState>> absolute_target_jnt_position_;
+ 
+    // Data structure for logging
+    std::map<size_t,RobotJointState> robot_joint_state_link_log_;
+    std::map<size_t,RobotJointState> robot_joint_state_motor_log_;
+    std::map<size_t,RobotCartState> robot_cart_state_link_log_;
+    ORL_joint_value robot_motor_current_log_;
 
-    std::map<size_t,realtime_buffer::CircBufferUnqPtr<absolute_target_position_t>> absolute_target_jnt_position_;
-    std::map<size_t,realtime_buffer::CircBufferUnqPtr<absolute_target_position_t>> absolute_target_jnt_position_log_;
     
     // C5GOpen class internal methods
     void c5gopen_thread( );

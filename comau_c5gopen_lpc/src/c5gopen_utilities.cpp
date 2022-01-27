@@ -65,7 +65,7 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.ctrl_idx_ = get_orl_ctrl_num(cfg_file["c5gopen_ctrl"]["ctrl_idx"].as<size_t>());
+      c5gopen_cfg.ctrl_idx_orl_ = get_orl_ctrl_num(cfg_file["c5gopen_ctrl"]["ctrl_idx"].as<size_t>());
     
     if ( !( cfg_file["c5gopen_ctrl"]["ip_ctrl"] && cfg_file["c5gopen_ctrl"]["ip_ctrl"].IsScalar() ) )
     {
