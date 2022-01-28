@@ -65,7 +65,7 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.ctrl_idx_orl_ = get_orl_ctrl_num(cfg_file["c5gopen_ctrl"]["ctrl_idx"].as<size_t>());
+      c5gopen_cfg.c5gopen_driver_cfg_.ctrl_idx_orl_ = get_orl_ctrl_num(cfg_file["c5gopen_ctrl"]["ctrl_idx"].as<size_t>());
     
     if ( !( cfg_file["c5gopen_ctrl"]["ip_ctrl"] && cfg_file["c5gopen_ctrl"]["ip_ctrl"].IsScalar() ) )
     {
@@ -73,7 +73,7 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.ip_ctrl_ = cfg_file["c5gopen_ctrl"]["ip_ctrl"].as<std::string>();   
+      c5gopen_cfg.c5gopen_driver_cfg_.ip_ctrl_ = cfg_file["c5gopen_ctrl"]["ip_ctrl"].as<std::string>();   
 
 
     if ( !( cfg_file["c5gopen_ctrl"]["sys_id"] && cfg_file["c5gopen_ctrl"]["sys_id"].IsScalar() ) )
@@ -82,7 +82,7 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.sys_id_ = cfg_file["c5gopen_ctrl"]["sys_id"].as<std::string>();
+      c5gopen_cfg.c5gopen_driver_cfg_.sys_id_ = cfg_file["c5gopen_ctrl"]["sys_id"].as<std::string>();
     
 
     if ( !(cfg_file["c5gopen_ctrl"]["active_arms"] && cfg_file["c5gopen_ctrl"]["active_arms"].IsSequence() ) )
@@ -91,10 +91,8 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.active_arms_ = cfg_file["c5gopen_ctrl"]["active_arms"].as<std::vector<size_t>>();
-     
-    c5gopen_cfg.max_number_of_arms_ = c5gopen_cfg.active_arms_.size();
-    
+      c5gopen_cfg.c5gopen_driver_cfg_.active_arms_ = cfg_file["c5gopen_ctrl"]["active_arms"].as<std::vector<size_t>>();
+        
 
     if ( !(cfg_file["c5gopen_ctrl"]["period"] && cfg_file["c5gopen_ctrl"]["period"].IsScalar() ))
     {
@@ -103,7 +101,7 @@ namespace c5gopen
     }
     else
     {
-      if (!decode_c5gopen_frequency( cfg_file["c5gopen_ctrl"]["period"].as<double>(), c5gopen_cfg.c5gopen_period_orl_ ) )
+      if (!decode_c5gopen_frequency( cfg_file["c5gopen_ctrl"]["period"].as<double>(), c5gopen_cfg.c5gopen_driver_cfg_.c5gopen_period_orl_ ) )
         return false;
     }
 
@@ -115,7 +113,7 @@ namespace c5gopen
     }
     else
     {
-      if ( !set_frames( cfg_file["robot_frames"]["base_frame"].as<std::vector<double>>(), c5gopen_cfg.base_frame_ ) )
+      if ( !set_frames( cfg_file["robot_frames"]["base_frame"].as<std::vector<double>>(), c5gopen_cfg.c5gopen_driver_cfg_.base_frame_ ) )
         return false;
     }
 
@@ -126,7 +124,7 @@ namespace c5gopen
     }
     else
     {
-      if ( !set_frames( cfg_file["robot_frames"]["user_frame"].as<std::vector<double>>(), c5gopen_cfg.user_frame_ ) )
+      if ( !set_frames( cfg_file["robot_frames"]["user_frame"].as<std::vector<double>>(), c5gopen_cfg.c5gopen_driver_cfg_.user_frame_ ) )
         return false;
     }
 
@@ -137,7 +135,7 @@ namespace c5gopen
     }
     else
     {    
-      if ( !set_frames( cfg_file["robot_frames"]["tool_frame"].as<std::vector<double>>(), c5gopen_cfg.tool_frame_ ) )
+      if ( !set_frames( cfg_file["robot_frames"]["tool_frame"].as<std::vector<double>>(), c5gopen_cfg.c5gopen_driver_cfg_.tool_frame_ ) )
         return false;
     }
 
@@ -149,7 +147,7 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.mqtt_client_id_ = cfg_file["mqtt"]["client_id"].as<std::string>();
+      c5gopen_cfg.mqtt_cfg_.mqtt_client_id_ = cfg_file["mqtt"]["client_id"].as<std::string>();
     
 
     if ( !(cfg_file["mqtt"]["broker_address"] && cfg_file["mqtt"]["broker_address"].IsScalar()) )
@@ -158,25 +156,25 @@ namespace c5gopen
       return false;
     }
     else
-      c5gopen_cfg.mqtt_broker_address_ = cfg_file["mqtt"]["broker_address"].as<std::string>();
+      c5gopen_cfg.mqtt_cfg_.mqtt_broker_address_ = cfg_file["mqtt"]["broker_address"].as<std::string>();
     
 
-    if ( !(cfg_file["mqtt"]["mqtt_port"] && cfg_file["mqtt"]["mqtt_port"].IsScalar()) )
+    if ( !(cfg_file["mqtt"]["port"] && cfg_file["mqtt"]["port"].IsScalar()) )
     {
-      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'mqtt_port' " << cnr_logger::RESET() << std::endl;
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'port' " << cnr_logger::RESET() << std::endl;
       return false;
     }
     else
-      c5gopen_cfg.mqtt_port_ = cfg_file["mqtt"]["mqtt_port"].as<std::string>();
+      c5gopen_cfg.mqtt_cfg_.mqtt_port_ = cfg_file["mqtt"]["port"].as<size_t>();
     
 
-    if ( !(cfg_file["mqtt"]["mqtt_topic"] && cfg_file["mqtt"]["mqtt_topic"].IsScalar()) )
+    if ( !(cfg_file["mqtt"]["sub_topics"] && cfg_file["mqtt"]["sub_topics"].IsSequence()) )
     {
-      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'mqtt_topic' " << cnr_logger::RESET() << std::endl;
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'sub_topics' " << cnr_logger::RESET() << std::endl;
       return false;
     }
     else
-      c5gopen_cfg.mqtt_topic_ = cfg_file["mqtt"]["mqtt_topic"].as<std::string>();
+      c5gopen_cfg.mqtt_cfg_.mqtt_sub_topics_ = cfg_file["mqtt"]["sub_topics"].as<std::vector<std::string>>();
 
 
     // Load cnr_logger configuration parameters

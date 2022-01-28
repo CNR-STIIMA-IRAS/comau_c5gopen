@@ -82,17 +82,25 @@ namespace c5gopen
   {
   public:
     typedef std::shared_ptr<C5GOpenDriver> Ptr;
-    C5GOpenDriver(const c5gopen::C5GOpenCfg& c5gopen_cfg, 
+    C5GOpenDriver(const c5gopen::C5GOpenDriverCfg& c5gopen_cfg, 
                   std::shared_ptr<cnr_logger::TraceLogger>& logger ); 
 
     ~C5GOpenDriver();
 
     bool init();
     bool run();
+    
     thread_status getC5GOpenThreadsStatus();
     thread_status getComThreadsStatus();
     thread_status getLoopConsoleThreadsStatus();
-    
+
+    RobotJointState getRobotJointStateLink( const size_t& arm );
+    RobotJointState getRobotJointStateMotor( const size_t& arm );
+    RobotCartState getRobotCartState( const size_t& arm );
+    ORL_joint_value getRobotMotorCurrent( const size_t& arm );
+
+    bool setRobotJointAbsoluteTargetPosition( const size_t& arm, const RobotJointState& joint_state );
+
     friend int c5gopen_callback( int input );
 
     typedef int (C5GOpenDriver::*CF)(int);
@@ -103,11 +111,10 @@ namespace c5gopen
     bool system_initialized_;
 
     // C5GOpen configuration parameters
-    size_t c5gopen_ctrl_idx_orl_;
+    size_t c5gopen_ctrl_idx_orl_; // orl format
     std::string c5gopen_ip_ctrl_;
     std::string c5gopen_sys_id_;
 
-    size_t max_number_of_arms_;
     std::vector<size_t> active_arms_;
 
     size_t c5gopen_period_orl_; // orl format
@@ -115,12 +122,6 @@ namespace c5gopen
     ORL_cartesian_position base_frame_;
     ORL_cartesian_position user_frame_;
     ORL_cartesian_position tool_frame_;
-
-    // MQTT configuration parameters
-    std::string mqtt_client_id_;
-    std::string mqtt_broker_address_;
-    std::string mqtt_port_;
-    std::string mqtt_topic_;
 
     // C5GOpen thread managment
     std::mutex mtx_;
@@ -134,7 +135,7 @@ namespace c5gopen
     thread_status com_threads_status_ = thread_status::BEFORE_RUN;
     thread_status loop_console_threads_status_ = thread_status::BEFORE_RUN;
 
-    // Robot data
+    // C5GOpen internal control flags 
     std::map<size_t,bool> first_arm_driveon_;
     std::map<size_t,bool> flag_RunningMove_; // to be verified if necessary
     std::map<size_t,bool> flag_ExitFromOpen_;
@@ -154,14 +155,15 @@ namespace c5gopen
     std::map<size_t,RobotJointState> robot_joint_state_link_log_;
     std::map<size_t,RobotJointState> robot_joint_state_motor_log_;
     std::map<size_t,RobotCartState> robot_cart_state_link_log_;
-    ORL_joint_value robot_motor_current_log_;
+    std::map<size_t,ORL_joint_value> robot_motor_current_log_;
 
     
     // C5GOpen class internal methods
     void c5gopen_thread( );
-    void com_thread( );
+    void logging_thread( );
     void loop_console_thread( );
     bool initialize_control_position( void );
+    bool update_robot_state( );
     void set_exit_from_open( const size_t& arm );
 
   };

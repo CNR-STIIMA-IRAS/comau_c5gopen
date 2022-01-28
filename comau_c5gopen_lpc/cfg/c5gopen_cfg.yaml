@@ -13,8 +13,8 @@ robot_frames:
 mqtt:
   client_id: "Client_ID"
   broker_address: "localhost"
-  mqtt_port: 1883
-  mqtt_topic: "example_topic"
+  port: 1883
+  sub_topics: ["testTopic1","testTopic2"]
 
 cnr_logger:
   logger_cfg_file: /home/c5gopen/comau_devel_ws/src/comau_c5gopen/comau_c5gopen_lpc/cfg/log_cfg.yaml

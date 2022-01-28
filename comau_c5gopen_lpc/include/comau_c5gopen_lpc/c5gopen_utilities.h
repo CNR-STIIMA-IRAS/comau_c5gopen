@@ -42,26 +42,31 @@
 
 namespace c5gopen
 {
-  struct C5GOpenCfg 
+  struct C5GOpenDriverCfg
   {
     size_t ctrl_idx_orl_;
     std::string ip_ctrl_;
     std::string sys_id_;
 
-    std::vector<size_t> active_arms_;
-    size_t max_number_of_arms_;
-
     size_t c5gopen_period_orl_;
+    
+    std::vector<size_t> active_arms_;
 
     ORL_cartesian_position base_frame_;
     ORL_cartesian_position user_frame_;
     ORL_cartesian_position tool_frame_;
-
+  }
+  struct MQTTCfg
+  {
     std::string mqtt_client_id_;
     std::string mqtt_broker_address_;
-    std::string mqtt_port_;
-    std::string mqtt_topic_;
-
+    size_t mqtt_port_;
+    std::vector<std::string> mqtt_sub_topics_;
+  }
+  struct C5GOpenNodeCfg 
+  {
+    C5GOpenDriverCfg c5gopen_driver_cfg_;
+    MQTTCfg mqtt_cfg_;
     std::string cnr_logger_cfg_file;
   };
 
