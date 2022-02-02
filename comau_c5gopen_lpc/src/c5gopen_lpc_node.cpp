@@ -33,37 +33,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* author Enrico Villagrossi (enrico.villagrossi@stiima.cnr.it) */
+
 #include <fstream>
 
 #include <cnr_logger/cnr_logger.h>
 #include <cnr_logger/cnr_logger_macros.h>
 
+#include <comau_c5gopen_lpc/c5gopen_mqtt.h>
 #include <comau_c5gopen_lpc/c5gopen_driver.h>
 #include <comau_c5gopen_lpc/c5gopen_utilities.h>
-#include <comau_c5gopen_lpc/mqtt.h>
-
-std::unique_ptr<c5gopen::C5GOpenDriver> c5gopen_driver;
-
-void on_publish_callback()
-{
-  for ( const size_t& active_arm : c5gopen_cfg.c5gopen_driver_cfg_.active_arms_ )
-  {
-    c5gopen::RobotJointState joint_state_link = c5gopen_driver->getRobotJointStateLink( active_arm );
-    c5gopen::RobotJointState joint_state_motor = c5gopen_driver->getRobotJointStateMotor( active_arm );
-    c5gopen::RobotCartState cart_state = c5gopen_driver->getRobotCartState( active_arm );
-    ORL_joint_value motor_current = c5gopen_driver->getRobotMotorCurrent( active_arm );
-  }
-
-}
-
-void on_subscribe_callback()
-{
-  for ( const size_t& active_arm : c5gopen_cfg.c5gopen_driver_cfg_.active_arms_ )
-  {
-    // if ( !setRobotJointAbsoluteTargetPosition( active_arm, const RobotJointState& joint_state ))
-    //   CNR_WARN("Can't add new trajectory point, the C5GOpenDriver buffer is full.");
-  }
-}
 
 int  main (int argc, char **argv)
 {
@@ -76,43 +55,50 @@ int  main (int argc, char **argv)
     return -1;
   }
 
+  // ************************************************
+  // Load configuration parameters
+  // ************************************************
+  c5gopen::C5GOpenNodeCfg c5gopen_cfg;
+  if (!c5gopen::load_c5gopen_parameters(c5gopen_cfg_file_name, c5gopen_cfg))
+  {
+    std::cout << cnr_logger::RED() <<  "Error: cannot load the configuration parameters, please check the configuration file: " << c5gopen_cfg_file_name << cnr_logger::RESET() << std::endl;
+    return -1;
+  }
+
+  // ************************************************
+  // Create logger 
+  // ************************************************
+  std::shared_ptr<cnr_logger::TraceLogger> logger( new cnr_logger::TraceLogger( "c5gopen", c5gopen_cfg.cnr_logger_cfg_file, true, true));  
+
   try
   {
-
-    // ************************************************
-    // Load configuration parameters
-    // ************************************************
-    c5gopen::C5GOpenNodeCfg c5gopen_cfg;
-    if (!c5gopen::load_c5gopen_parameters(c5gopen_cfg_file_name, c5gopen_cfg))
-    {
-      std::cout << cnr_logger::RED() <<  "Error: cannot load the configuration parameters, please check the configuration file: " << c5gopen_cfg_file_name << cnr_logger::RESET() << std::endl;
-      return -1;
-    }
-
-
     // ************************************************
     // Create the MQTT client
     // ************************************************
-    std::unique_ptr<cnr::mqtt_client> iot_client( new cnr::mqtt_client( c5gopen_cfg.mqtt_cfg_.mqtt_client_id_.c_str(),
-                                                                        c5gopen_cfg.mqtt_cfg_.mqtt_broker_address_.c_str(),
-                                                                        c5gopen_cfg.mqtt_cfg_.mqtt_port_) ) ;
+    std::unique_ptr<c5gopen::C5GOpenMQTT> iot_client( new c5gopen::C5GOpenMQTT( c5gopen_cfg.mqtt_cfg_.mqtt_client_id_.c_str(),
+                                                                                c5gopen_cfg.mqtt_cfg_.mqtt_broker_address_.c_str(),
+                                                                                c5gopen_cfg.mqtt_cfg_.mqtt_port_,
+                                                                                logger) ) ;
 
     for (const std::string& topic: c5gopen_cfg.mqtt_cfg_.mqtt_sub_topics_)
       iot_client->subscribe( NULL, topic.c_str(), 1 );
 
-    iot_client->on_publish(&on_publish_callback,NULL);
-    iot_client->on_subscribe(&on_subscribe_callback,NULL);
-
-    // ************************************************
-    // Create logger 
-    // ************************************************
-    std::shared_ptr<cnr_logger::TraceLogger> logger( new cnr_logger::TraceLogger( "c5gopen", c5gopen_cfg.cnr_logger_cfg_file, true, true));  
-
-
     // ************************************************
     // Create, initialize and run C5GOpen driver  
     // ************************************************
-    c5gopen_driver.reset( new c5gopen::C5GOpenDriver( c5gopen_cfg.c5gopen_driver_cfg_, logger) );
+    std::shared_ptr<c5gopen::C5GOpenDriver> c5gopen_driver( new c5gopen::C5GOpenDriver( c5gopen_cfg.c5gopen_driver_cfg_, logger ));
+
+//TO DEBUG!!!!!!
+
+    while(1)
+    {
+      if(iot_client)
+      {
+        iot_client->publish( c5gopen_driver );   
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+    }
 
     if ( !c5gopen_driver->init() ) 
     {
@@ -135,12 +121,9 @@ int  main (int argc, char **argv)
     {
       if(iot_client)
       {
-        int rc = iot_client->loop();
-        if (rc)
-          //iot_client->reconnect();
-        else
-          //iot_client->subscribe(NULL, MQTT_TOPIC);  
+        iot_client->publish( c5gopen_driver );   
       }
+
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
   }

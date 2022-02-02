@@ -33,8 +33,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __C5GOPEN_LPC_NODE__
-#define __C5GOPEN_LPC_NODE__
+/* author Enrico Villagrossi (enrico.villagrossi@stiima.cnr.it) */
+
+#ifndef C5GOPEN_DRIVER_H
+#define C5GOPEN_DRIVER_H
+
 #include <map>
 #include <string>
 #include <vector>
@@ -57,27 +60,6 @@
 #define target_pos_max_buff_log_len 300
 namespace c5gopen
 {   
-  struct RobotJointState
-  {
-    ORL_joint_value real_pos;
-    ORL_joint_value real_vel;
-    ORL_joint_value target_pos;
-    ORL_joint_value target_vel;
-  }__attribute__ ( ( packed ) ); 
-
-  struct RobotCartState
-  {
-    ORL_cartesian_position real_pos;
-    ORL_cartesian_position target_pos;
-  }__attribute__ ( ( packed ) ); 
-
-  enum thread_status
-  {
-    BEFORE_RUN  = 0,
-    RUNNING     = 1,
-    CLOSED      = 2 
-  }__attribute__ ( ( packed ) );
-
   class C5GOpenDriver: public std::enable_shared_from_this<c5gopen::C5GOpenDriver>
   {
   public:
@@ -90,18 +72,24 @@ namespace c5gopen
     bool init();
     bool run();
     
+    bool getSystemInitialized();
+
     thread_status getC5GOpenThreadsStatus();
     thread_status getComThreadsStatus();
     thread_status getLoopConsoleThreadsStatus();
 
-    RobotJointState getRobotJointStateLink( const size_t& arm );
-    RobotJointState getRobotJointStateMotor( const size_t& arm );
-    RobotCartState getRobotCartState( const size_t& arm );
-    ORL_joint_value getRobotMotorCurrent( const size_t& arm );
+    std::map<size_t,RobotJointState> getRobotJointStateLink( );
+    std::map<size_t,RobotJointState> getRobotJointStateMotor( );
+    std::map<size_t,RobotCartState> getRobotCartState( );
+    std::map<size_t,ORL_joint_value> getRobotMotorCurrent( );
+    std::map<size_t,RobotJointStateArray> getRobotJointStateLinkArray( );
+    std::map<size_t,RobotJointStateArray> getRobotJointStateMotorArray( );
+    std::map<size_t,RobotCartStateArray> getRobotCartStateArray( );
+    std::map<size_t,RobotGenericArray> getRobotMotorCurrentArray( );
 
     bool setRobotJointAbsoluteTargetPosition( const size_t& arm, const RobotJointState& joint_state );
 
-    friend int c5gopen_callback( int input );
+    friend int c5gopenCallback( int input );
 
     typedef int (C5GOpenDriver::*CF)(int);
     
@@ -127,7 +115,7 @@ namespace c5gopen
     std::mutex mtx_;
 
     std::thread c5gopen_thread_; 
-    std::thread com_thread_; 
+    std::thread logging_thread_; 
     std::thread loop_console_thread_;
     std::shared_ptr<cnr_logger::TraceLogger> logger_;
 
@@ -154,22 +142,22 @@ namespace c5gopen
     // Data structure for logging
     std::map<size_t,RobotJointState> robot_joint_state_link_log_;
     std::map<size_t,RobotJointState> robot_joint_state_motor_log_;
-    std::map<size_t,RobotCartState> robot_cart_state_link_log_;
+    std::map<size_t,RobotCartState> robot_cart_state_log_;
     std::map<size_t,ORL_joint_value> robot_motor_current_log_;
 
     
     // C5GOpen class internal methods
-    void c5gopen_thread( );
-    void logging_thread( );
-    void loop_console_thread( );
-    bool initialize_control_position( void );
-    bool update_robot_state( );
-    void set_exit_from_open( const size_t& arm );
+    void c5gopenThread( );
+    void loggingThread( );
+    void loopConsoleThread( );
+    bool initializeControlPosition( void );
+    bool updateRobotState( );
+    void setExitFromOpen( const size_t& arm );
 
   };
 
-  int c5gopen_callback( int input );
-  void init_driver_library(C5GOpenDriver* c5gopen_driver);
+  int c5gopenCallback( int input );
+  void initDriverLibrary(C5GOpenDriver* c5gopen_driver);
 
 } // end of namespace c5gopen
 

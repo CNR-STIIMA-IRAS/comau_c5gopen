@@ -1,3 +1,38 @@
+/*
+ *  Software License Agreement (New BSD License)
+ *
+ *  Copyright 2020 National Council of Research of Italy (CNR)
+ *
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the copyright holder(s) nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include <iostream>
 #include <thread>
 #include <ctime>
@@ -7,7 +42,8 @@
 
 #include <comau_c5gopen_lpc/mqtt.h>
 #include <comau_c5gopen_lpc/dynamic_callback.h>
-#define PUBLISH_TOPIC "EXAMPLE_TOPIC"
+
+// #define PUBLISH_TOPIC "EXAMPLE_TOPIC"
 
 #ifdef DEBUG
 #include <iostream>
@@ -21,7 +57,9 @@ namespace cnr
     std::vector<double> log_max;
     char errbuffer[1024] = {0};
     
-    mqtt_client::mqtt_client(const char *id, const char *host, int port) 
+    MQTTClient::MQTTClient( const char *id, const char *host, 
+                            int port, std::shared_ptr<cnr_logger::TraceLogger>& logger ):
+                            logger_(logger)   
     {
       int rc;
 
@@ -36,7 +74,7 @@ namespace cnr
       mosq = mosquitto_new(id, obj);
       if(mosq == NULL)
       {
-        fprintf(stderr, "Error: Out of memory.\n");
+        CNR_ERROR(*logger_, "Error: Out of memory.");
         throw std::runtime_error("Error: Out of memory.");
       }
 
@@ -45,26 +83,27 @@ namespace cnr
 
 
       /* Configure callbacks. This should be done before connecting ideally. */
-      mosquitto_connect_callback_set(mosq, OnConnectMemberFunctionCallback(this, &mqtt_client::on_connect));
-      mosquitto_subscribe_callback_set(mosq, OnSubscribeMemberFunctionCallback(this, &mqtt_client::on_subscribe));
-      mosquitto_message_callback_set(mosq, OnMessageMemberFunctionCallback(this, &mqtt_client::on_message));
-      mosquitto_publish_callback_set(mosq, OnPublishMemberFunctionCallback(this, &mqtt_client::on_publish));
+      mosquitto_connect_callback_set(mosq, OnConnectMemberFunctionCallback(this, &MQTTClient::on_connect));
+      mosquitto_subscribe_callback_set(mosq, OnSubscribeMemberFunctionCallback(this, &MQTTClient::on_subscribe));
+      mosquitto_message_callback_set(mosq, OnMessageMemberFunctionCallback(this, &MQTTClient::on_message));
+      mosquitto_publish_callback_set(mosq, OnPublishMemberFunctionCallback(this, &MQTTClient::on_publish));
 
         /* Connect to test.mosquitto.org on port 1883, with a keepalive of 60 seconds.
       * This call makes the socket connection only, it does not complete the MQTT
       * CONNECT/CONNACK flow, you should use mosquitto_loop_start() or
       * mosquitto_loop_forever() for processing net traffic. */
+
       rc = mosquitto_connect(mosq, host, 1883, 60, true);
       if(rc != MOSQ_ERR_SUCCESS)
       {
         mosquitto_destroy(mosq);
-        fprintf(stderr, "Error: %s\n", strerror_r(rc,errbuffer,1024));
+        CNR_ERROR(*logger_, "Error: " << strerror_r(rc,errbuffer,1024) );
         throw std::runtime_error("Error");
       }
     }
 
 
-    int mqtt_client::loop()
+    int MQTTClient::loop()
     {
       /* Run the network loop in a blocking call. The only thing we do in this
       * example is to print incoming messages, so a blocking call here is fine.
@@ -82,7 +121,7 @@ namespace cnr
         if(rc != MOSQ_ERR_SUCCESS)
         {
           mosquitto_destroy(mosq);
-          fprintf(stderr, "Error: %s\n", strerror_r(rc, errbuffer,1024));
+          CNR_ERROR(*logger_, "Error: " << strerror_r(rc, errbuffer,1024) );
           return 1;
         }
 
@@ -94,18 +133,19 @@ namespace cnr
         * In this case we know it is 1 second before we start publishing.
         */
 
-        publish();
+        // To be evaluated if necessary
+        //publish();
         //std::this_thread::sleep_for(std::chrono::microseconds(1));
       }
 
       return rc;
     }
-    int mqtt_client::reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff)
+    int MQTTClient::reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff)
     {
       return -1; //mosquitto_reconnect_delay_set(mosq,reconnect_delay, reconnect_delay_max, reconnect_exponential_backoff);
     }
         
-    int mqtt_client::subscribe(uint16_t *mid, const char *sub, int qos)
+    int MQTTClient::subscribe(uint16_t *mid, const char *sub, int qos)
     {
       /* Making subscriptions in the on_connect() callback means that if the
       * connection drops and is automatically resumed by the client, then the
@@ -113,7 +153,7 @@ namespace cnr
       int rc = mosquitto_subscribe(mosq, mid, sub, qos);
       if(rc != MOSQ_ERR_SUCCESS)
       {
-        fprintf(stderr, "Error subscribing: %s\n", strerror_r(rc, errbuffer,1024));
+        CNR_ERROR(*logger_, "Error subscribing: " << strerror_r(rc, errbuffer,1024) );
         /* We might as well disconnect if we were unable to subscribe */
         mosquitto_disconnect(mosq);
       }
@@ -121,18 +161,10 @@ namespace cnr
     }
 
     /* This function pretends to read some data from a sensor and publish it.*/
-    void mqtt_client::publish()
+    void MQTTClient::publish( const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name )
     {
-      static uint8_t payload[20];
-      int temp = 100;
-      int rc;
-
-      /* Print it to a string for easy human reading - payload format is highly
-      * application dependent. */
-      snprintf((char*)payload, sizeof(payload), "%d", temp);
-
       /* Publish the message
-      * mosq - our client instance
+      * mosq - our client instance 
       * *mid = NULL - we don't want to know what the message id for this message is
       * topic = "example/temperature" - the topic on which this message will be published
       * payloadlen = strlen(payload) - the length of our payload in bytes
@@ -140,14 +172,17 @@ namespace cnr
       * qos = 2 - publish with QoS 2 for this example
       * retain = false - do not use the retained message feature for this message
       */
-      rc = mosquitto_publish(mosq, NULL, "example/temperature", strlen((const char*)payload), payload, 0, false);
-      if(rc != MOSQ_ERR_SUCCESS){
-          fprintf(stderr, "Error publishing: %s\n", strerror_r(rc, errbuffer,1024));
+
+
+      int rc = mosquitto_publish(mosq, NULL, topic_name.c_str(), payload_len, payload, 0, false);
+      if( rc != MOSQ_ERR_SUCCESS )
+      {
+        CNR_ERROR(*logger_, "Error publishing: " << strerror_r(rc, errbuffer,1024) );
       }
     }
 
 
-    mqtt_client::~mqtt_client()
+    MQTTClient::~MQTTClient()
     {
       /* Run the network loop in a blocking call. The only thing we do in this
       * example is to print incoming messages, so a blocking call here is fine.
@@ -157,21 +192,20 @@ namespace cnr
       */
       for(size_t i=0;i<log_mean.size();i++)
       {
-          std::cout << "[" << std::fixed << log_mean.at(i) << "us / " << log_max.at(i) << "us ]\n";
+        CNR_INFO(*logger_, "[" << std::fixed << log_mean.at(i) << "us / " << log_max.at(i) << "us ]" );
       }
-      std::cout << std::endl;
       //mosquitto_loop_forever(mosq, -1, 1);
       mosquitto_lib_cleanup();
     }
 
-    void mqtt_client::on_connect(void *obj, int reason_code)
+    void MQTTClient::on_connect(void *obj, int reason_code)
     {
       int rc;
       /* Print out the connection result. mosquitto_connack_string() produces an
       * appropriate string for MQTT v3.x clients, the equivalent for MQTT v5.0
       * clients is mosquitto_reason_string().
       */
-      printf("on_connect:");// %s\n", mosquitto_connack_string(reason_code));
+      CNR_INFO(*logger_, "on_connect:");
       if(reason_code != 0)
       {
         /* If the connection fails for any reason, we don't want to keep on
@@ -181,7 +215,7 @@ namespace cnr
       }
     }
 
-    void mqtt_client::on_subscribe(void *obj, uint16_t mid, int qos_count, const uint8_t *granted_qos)
+    void MQTTClient::on_subscribe(void *obj, uint16_t mid, int qos_count, const uint8_t *granted_qos)
     {
       int i;
       bool have_subscription = false;
@@ -191,22 +225,21 @@ namespace cnr
           * them all. */
       for(i=0; i<qos_count; i++)
       {
-        printf("on_subscribe: %d:granted qos = %d\n", i, granted_qos[i]);
+        CNR_INFO(*logger_, "on_subscribe: " << i << ":granted qos = " << granted_qos[i]);
         if(granted_qos[i] <= 2)
-        {
           have_subscription = true;
-        }
+        
       }
       if(have_subscription == false)
       {
         /* The broker rejected all of our subscriptions, we know we only sent
-            * the one SUBSCRIBE, so there is no point remaining connected. */
-        fprintf(stderr, "Error: All subscriptions rejected.\n");
+            the one SUBSCRIBE, so there is no point remaining connected. */
+        CNR_ERROR(*logger_, "Error: All subscriptions rejected." ); ;
         mosquitto_disconnect(mosq);
       }
     }
 
-    void mqtt_client::on_publish(void *obj, uint16_t mid)
+    void MQTTClient::on_publish(void *obj, uint16_t mid)
     {
       static long long delta = 0;
       static long long max = 0;
@@ -221,10 +254,9 @@ namespace cnr
 
       cycle++;
       delta += us.count();
-      if(us.count()>max)
-      {
+      if(us.count()>max)  
         max = us.count();
-      }
+    
 
       if(delta > DELTA_US)
       {
@@ -237,10 +269,10 @@ namespace cnr
       old = now;
     }
 
-    void mqtt_client::on_message(void *obj, const struct mosquitto_message *msg)
+    void MQTTClient::on_message(void *obj, const struct mosquitto_message *msg)
     {
       /* This blindly prints the payload, but the payload can be anything so take care. */
-      printf("%s %d %s\n", msg->topic, msg->qos, (char *)msg->payload);
+      CNR_INFO(*logger_, msg->topic << "  " << msg->qos << "  " << (char *)msg->payload);
     }
 
 } // end namespace cnr

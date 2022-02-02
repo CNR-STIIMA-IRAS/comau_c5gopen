@@ -33,6 +33,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* author Enrico Villagrossi (enrico.villagrossi@stiima.cnr.it) */
+
 #include <math.h>
 #include <stdio.h>
 #include <fstream>
@@ -44,7 +46,7 @@
 namespace c5gopen
 {
 
-  bool load_c5gopen_parameters( const std::string& config_file_name, C5GOpenCfg& c5gopen_cfg )
+  bool load_c5gopen_parameters( const std::string& config_file_name, C5GOpenNodeCfg& c5gopen_cfg )
   {
     // Load parameters form YAML file
     std::ifstream if1(config_file_name.c_str());
@@ -157,7 +159,7 @@ namespace c5gopen
     }
     else
       c5gopen_cfg.mqtt_cfg_.mqtt_broker_address_ = cfg_file["mqtt"]["broker_address"].as<std::string>();
-    
+  
 
     if ( !(cfg_file["mqtt"]["port"] && cfg_file["mqtt"]["port"].IsScalar()) )
     {

@@ -1,3 +1,37 @@
+/*
+ *  Software License Agreement (New BSD License)
+ *
+ *  Copyright 2020 National Council of Research of Italy (CNR)
+ *
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the copyright holder(s) nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #ifndef DYNAMIC_CALLBACK_MQTT_H
 #define DYNAMIC_CALLBACK_MQTT_H
@@ -18,14 +52,14 @@ namespace cnr
       OnConnectCallbackBase(on_connect_callback pCCallback);
       void Free();
 
-      on_connect_callback Reserve(mqtt_client* instance, mqtt_client::on_connect_callback method);
+      on_connect_callback Reserve(MQTTClient* instance, MQTTClient::on_connect_callback method);
   protected:
       static void StaticInvoke(int context,  void *obj, int reason_code);
       
   private:
       on_connect_callback m_pCCallback;
-      mqtt_client* m_pClass;
-      mqtt_client::on_connect_callback m_pMethod;
+      MQTTClient* m_pClass;
+      MQTTClient::on_connect_callback m_pMethod;
   };
 
 
@@ -35,15 +69,15 @@ namespace cnr
       // input: pointer to a unique C callback. 
       OnMessageCallbackBase(on_message_callback pCCallback);
       void Free();
-      on_message_callback Reserve(mqtt_client* instance, mqtt_client::on_message_callback method);
+      on_message_callback Reserve(MQTTClient* instance, MQTTClient::on_message_callback method);
 
   protected:
       static void StaticInvoke(int context,  void *obj, const struct mosquitto_message *msg);
       
   private:
       on_message_callback m_pCCallback;
-      mqtt_client* m_pClass;
-      mqtt_client::on_message_callback m_pMethod;
+      MQTTClient* m_pClass;
+      MQTTClient::on_message_callback m_pMethod;
   };
 
   class OnSubscribeCallbackBase
@@ -52,15 +86,15 @@ namespace cnr
       // input: pointer to a unique C callback. 
       OnSubscribeCallbackBase(on_subscribe_callback pCCallback);
       void Free();
-      on_subscribe_callback Reserve(mqtt_client* instance, mqtt_client::on_subscribe_callback method);
+      on_subscribe_callback Reserve(MQTTClient* instance, MQTTClient::on_subscribe_callback method);
 
   protected:
       static void StaticInvoke(int context,  void *obj, uint16_t mid, int qos_count, const uint8_t *granted_qos);
       
   private:
       on_subscribe_callback m_pCCallback;
-      mqtt_client* m_pClass;
-      mqtt_client::on_subscribe_callback m_pMethod;
+      MQTTClient* m_pClass;
+      MQTTClient::on_subscribe_callback m_pMethod;
   };
 
   class OnPublishCallbackBase
@@ -69,15 +103,15 @@ namespace cnr
       // input: pointer to a unique C callback.
       OnPublishCallbackBase(on_publish_callback pCCallback);
       void Free();
-      on_publish_callback Reserve(mqtt_client* instance, mqtt_client::on_publish_callback method);
+      on_publish_callback Reserve(MQTTClient* instance, MQTTClient::on_publish_callback method);
 
   protected:
       static void StaticInvoke(int context, void *obj, uint16_t mid);
       
   private:
       on_publish_callback m_pCCallback;
-      mqtt_client* m_pClass;
-      mqtt_client::on_publish_callback m_pMethod;
+      MQTTClient* m_pClass;
+      MQTTClient::on_publish_callback m_pMethod;
   };
 
   template <int context> class OnConnectDynamicCallback : public OnConnectCallbackBase
@@ -137,7 +171,7 @@ namespace cnr
 
       bool IsValid() const;
       
-      OnConnectMemberFunctionCallback(mqtt_client* instance, mqtt_client::on_connect_callback method);
+      OnConnectMemberFunctionCallback(MQTTClient* instance, MQTTClient::on_connect_callback method);
       ~OnConnectMemberFunctionCallback();
 
   private:
@@ -157,7 +191,7 @@ namespace cnr
 
       bool IsValid() const;
       
-      OnMessageMemberFunctionCallback(mqtt_client* instance, mqtt_client::on_message_callback method);
+      OnMessageMemberFunctionCallback(MQTTClient* instance, MQTTClient::on_message_callback method);
       ~OnMessageMemberFunctionCallback();
 
   private:
@@ -177,7 +211,7 @@ namespace cnr
 
       bool IsValid() const;
       
-      OnSubscribeMemberFunctionCallback(mqtt_client* instance, mqtt_client::on_subscribe_callback method);
+      OnSubscribeMemberFunctionCallback(MQTTClient* instance, MQTTClient::on_subscribe_callback method);
       ~OnSubscribeMemberFunctionCallback();
 
   private:
@@ -197,7 +231,7 @@ namespace cnr
 
       bool IsValid() const;
       
-      OnPublishMemberFunctionCallback(mqtt_client* instance, mqtt_client::on_publish_callback method);
+      OnPublishMemberFunctionCallback(MQTTClient* instance, MQTTClient::on_publish_callback method);
       ~OnPublishMemberFunctionCallback();
 
   private:

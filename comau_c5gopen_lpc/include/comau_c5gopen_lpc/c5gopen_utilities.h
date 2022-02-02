@@ -33,8 +33,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __C5GOPEN_UTILITIES__
-#define __C5GOPEN_UTILITIES__
+/* author Enrico Villagrossi (enrico.villagrossi@stiima.cnr.it) */
+
+#ifndef C5GOPEN_UTILITIES_H
+#define C5GOPEN_UTILITIES_H
 
 #include <eORL.h>
 
@@ -42,6 +44,51 @@
 
 namespace c5gopen
 {
+  struct RobotJointState
+  {
+    ORL_joint_value real_pos;
+    ORL_joint_value real_vel;
+    ORL_joint_value target_pos;
+    ORL_joint_value target_vel;
+  }__attribute__ ( ( packed ) ); 
+
+  struct RobotCartState
+  {
+    ORL_cartesian_position real_pos;
+    ORL_cartesian_position target_pos;
+  }__attribute__ ( ( packed ) ); 
+
+
+  struct RobotJointStateArray
+  {
+    // Joint position must be in [deg] and velocities in [deg/s]
+    double real_pos[ORL_MAX_AXIS] = {0};
+    double real_vel[ORL_MAX_AXIS] = {0};
+    double target_pos[ORL_MAX_AXIS] = {0};
+    double target_vel[ORL_MAX_AXIS] = {0};
+  }__attribute__ ( ( packed ) ); 
+
+  struct RobotCartStateArray
+  {
+    // Cartesian position must be in [mm] and angles in [deg]
+    double real_pos[6] = {0};
+    char config_flags_real[80] = {0};
+    double target_pos[6] = {0};
+    char config_flags_target[80] = {0};
+  }__attribute__ ( ( packed ) ); 
+
+  struct RobotGenericArray
+  {
+    double value[ORL_MAX_AXIS] = {0};
+  }__attribute__ ( ( packed ) );
+
+  enum thread_status
+  {
+    BEFORE_RUN  = 0,
+    RUNNING     = 1,
+    CLOSED      = 2 
+  }__attribute__ ( ( packed ) );
+
   struct C5GOpenDriverCfg
   {
     size_t ctrl_idx_orl_;
@@ -55,14 +102,14 @@ namespace c5gopen
     ORL_cartesian_position base_frame_;
     ORL_cartesian_position user_frame_;
     ORL_cartesian_position tool_frame_;
-  }
+  };
   struct MQTTCfg
   {
     std::string mqtt_client_id_;
     std::string mqtt_broker_address_;
     size_t mqtt_port_;
     std::vector<std::string> mqtt_sub_topics_;
-  }
+  };
   struct C5GOpenNodeCfg 
   {
     C5GOpenDriverCfg c5gopen_driver_cfg_;
@@ -70,7 +117,7 @@ namespace c5gopen
     std::string cnr_logger_cfg_file;
   };
 
-  bool load_c5gopen_parameters( const std::string& config_file_name, C5GOpenCfg& c5gopen_cfg );
+  bool load_c5gopen_parameters( const std::string& config_file_name, C5GOpenNodeCfg& c5gopen_cfg );
   size_t get_orl_ctrl_num( const size_t& ctrl_idx );
   size_t get_orl_arm_num( const size_t& arm_idx );
   bool set_frames( const std::vector<double>& frame, ORL_cartesian_position& orl_frame );

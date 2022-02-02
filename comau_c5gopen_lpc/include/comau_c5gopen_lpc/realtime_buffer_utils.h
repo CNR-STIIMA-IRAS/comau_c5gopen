@@ -33,8 +33,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __REALTIME_BUFFER_UTILS__
-#define __REALTIME_BUFFER_UTILS__
+/* author Enrico Villagrossi (enrico.villagrossi@stiima.cnr.it) */
+
+#ifndef REALTIME_BUFFER_UTILS_H
+#define REALTIME_BUFFER_UTILS_H
 
 #include <memory>
 #include <boost/thread.hpp>
