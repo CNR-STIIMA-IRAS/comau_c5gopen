@@ -53,7 +53,7 @@ namespace c5gopen
   {
   private:
     uint8_t* payload_ptr; 
-    uint8_t payload_len = 0;
+    uint32_t payload_len = 0;
     std::string topic_name;
     double payload_d[MAX_PAYLOAD_SIZE] = {0};
 
@@ -73,7 +73,8 @@ namespace c5gopen
 
   inline bool C5GOpenMQTT::publish( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver )
   {
-    if ( c5gopen_driver->getSystemInitialized() )
+    //if ( c5gopen_driver->getSystemInitialized() )
+    if (1)
     {
       std::map<size_t,c5gopen::RobotJointStateArray> robot_joint_state_link_log_ = c5gopen_driver->getRobotJointStateLinkArray( );      
       for (std::map<size_t,c5gopen::RobotJointStateArray>::iterator it=robot_joint_state_link_log_.begin(); it!=robot_joint_state_link_log_.end(); it++ )
@@ -81,13 +82,19 @@ namespace c5gopen
         char arm[10]; 
         sprintf(arm,"%d",it->first);
         
-        payload_len = sizeof(double) * ORL_MAX_AXIS;
+        payload_len = (uint32_t)(sizeof(double) * ORL_MAX_AXIS);
         
         // Real joints positions
         memset( payload_d, 0, MAX_PAYLOAD_SIZE );
         memcpy( payload_d, it->second.real_pos, ORL_MAX_AXIS );
+        // payload_d[0] = 2.3;
+        // payload_d[1] = 4.3;
+        // payload_d[2] = 5.9;
+        // payload_d[3] = 8.9;
         topic_name = "robot/arm" + std::string(arm) + "/real_joints_positions";
         publish(payload_ptr, payload_len, topic_name);
+
+        return true;
 
         // Real joints velocities
         memset( payload_d, 0, MAX_PAYLOAD_SIZE );
@@ -114,7 +121,7 @@ namespace c5gopen
         char arm[10]; 
         sprintf(arm,"%d",it->first);
 
-        payload_len = sizeof(double) * 6 + sizeof(char) * 80;
+        payload_len = (uint32_t)(sizeof(double) * 6 + sizeof(char) * 80);
 
         // Real Cartesian positions
         memset( payload_d, 0, MAX_PAYLOAD_SIZE );
@@ -140,7 +147,7 @@ namespace c5gopen
       {
         char arm[10]; 
         sprintf(arm,"%d",it->first);
-        payload_len = sizeof(double) * ORL_MAX_AXIS;
+        payload_len = (uint32_t)(sizeof(double) * ORL_MAX_AXIS);
 
         // Motor currents
         memset( payload_d, 0, MAX_PAYLOAD_SIZE );

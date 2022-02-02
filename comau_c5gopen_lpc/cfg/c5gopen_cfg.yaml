@@ -12,7 +12,7 @@ robot_frames:
 
 mqtt:
   client_id: "Client_ID"
-  broker_address: "192.168.254.246"
+  broker_address: "192.168.1.114"
   #broker_address: 10.2.13.32
   port: 1883
   sub_topics: ["testTopic1","testTopic2"]
