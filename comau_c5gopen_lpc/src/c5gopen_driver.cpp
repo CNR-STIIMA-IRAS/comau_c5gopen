@@ -181,12 +181,12 @@ namespace c5gopen
     std::map<size_t,RobotJointStateArray> robot_joint_state_link_;
     for (const size_t& arm : active_arms_)
     {
-      for (size_t iAx=0; iAx<ORL_MAX_AXIS; iAx++)
+      for (size_t iAx=0; iAx<sizeof(robot_joint_state_link_log_[arm].target_pos.value)/sizeof(double); iAx++)
       {
-        robot_joint_state_link_[arm].target_pos[iAx] = robot_joint_state_link_log_[arm].target_pos.value[iAx];
-        robot_joint_state_link_[arm].real_pos[iAx] = robot_joint_state_link_log_[arm].real_pos.value[iAx];
-        robot_joint_state_link_[arm].target_vel[iAx] = robot_joint_state_link_log_[arm].target_vel.value[iAx];
-        robot_joint_state_link_[arm].real_vel[iAx] = robot_joint_state_link_log_[arm].real_vel.value[iAx];
+        robot_joint_state_link_[arm].target_pos[iAx]  = robot_joint_state_link_log_[arm].target_pos.value[iAx];
+        robot_joint_state_link_[arm].real_pos[iAx]    = robot_joint_state_link_log_[arm].real_pos.value[iAx];
+        robot_joint_state_link_[arm].target_vel[iAx]  = robot_joint_state_link_log_[arm].target_vel.value[iAx];
+        robot_joint_state_link_[arm].real_vel[iAx]    = robot_joint_state_link_log_[arm].real_vel.value[iAx];
       }
     }
     return robot_joint_state_link_;
@@ -197,12 +197,12 @@ namespace c5gopen
     std::map<size_t,RobotJointStateArray> robot_joint_state_motor_;
     for (const size_t& arm : active_arms_)
     {
-      for (size_t iAx=0; iAx<ORL_MAX_AXIS; iAx++)
+      for (size_t iAx=0; iAx<sizeof(robot_joint_state_motor_log_[arm].target_pos.value)/sizeof(double); iAx++)
       {
         robot_joint_state_motor_[arm].target_pos[iAx] = robot_joint_state_motor_log_[arm].target_pos.value[iAx];
-        robot_joint_state_motor_[arm].real_pos[iAx] = robot_joint_state_motor_log_[arm].real_pos.value[iAx];
+        robot_joint_state_motor_[arm].real_pos[iAx]   = robot_joint_state_motor_log_[arm].real_pos.value[iAx];
         robot_joint_state_motor_[arm].target_vel[iAx] = robot_joint_state_motor_log_[arm].target_vel.value[iAx];
-        robot_joint_state_motor_[arm].real_vel[iAx] = robot_joint_state_motor_log_[arm].real_vel.value[iAx];
+        robot_joint_state_motor_[arm].real_vel[iAx]   = robot_joint_state_motor_log_[arm].real_vel.value[iAx];
       }
     }
     return robot_joint_state_motor_;
@@ -213,12 +213,12 @@ namespace c5gopen
     std::map<size_t,RobotCartStateArray> robot_cart_state_;
     for (const size_t& arm : active_arms_)
     {
-      for (size_t iFl=0; iFl<80; iFl++)
+      for (size_t iFl=0; iFl<sizeof(robot_cart_state_log_[arm].target_pos.config_flags)/sizeof(char); iFl++)
       {
-        robot_cart_state_[arm].config_flags_real[iFl] = robot_cart_state_log_[arm].target_pos.config_flags[iFl];
-        robot_cart_state_[arm].config_flags_real[iFl] = robot_cart_state_log_[arm].real_pos.config_flags[iFl];
+        robot_cart_state_[arm].config_flags_target[iFl] = robot_cart_state_log_[arm].target_pos.config_flags[iFl];
+        robot_cart_state_[arm].config_flags_real[iFl]   = robot_cart_state_log_[arm].real_pos.config_flags[iFl];
       }
-
+      
       robot_cart_state_[arm].target_pos[0] = robot_cart_state_log_[arm].target_pos.x;
       robot_cart_state_[arm].target_pos[1] = robot_cart_state_log_[arm].target_pos.y;
       robot_cart_state_[arm].target_pos[2] = robot_cart_state_log_[arm].target_pos.z;
@@ -241,9 +241,10 @@ namespace c5gopen
     std::map<size_t,RobotGenericArray> robot_motor_current_;
     for (const size_t& arm : active_arms_)
     {
-      for (size_t iAx=0; iAx<ORL_MAX_AXIS; iAx++)
+      for (size_t iAx=0; iAx<sizeof(robot_motor_current_log_[arm].value)/sizeof(double); iAx++)
         robot_motor_current_[arm].value[iAx] = robot_motor_current_log_[arm].value[iAx];
     }
+
     return robot_motor_current_;
   }
 

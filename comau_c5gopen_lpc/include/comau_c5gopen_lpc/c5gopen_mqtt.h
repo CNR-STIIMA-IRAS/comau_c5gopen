@@ -82,39 +82,42 @@ namespace c5gopen
         char arm[10]; 
         sprintf(arm,"%d",it->first);
         
-        payload_len = (uint32_t)(sizeof(double) * ORL_MAX_AXIS);
-        
         // Real joints positions
+        payload_len = (uint32_t) sizeof(it->second.real_pos);
         memset( payload, 0, MAX_PAYLOAD_SIZE );
-        for (size_t idx=0; idx<sizeof(it->second.real_pos)/sizeof(double); idx++)
+        for (size_t idx=0; idx<payload_len/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
-                
+
         topic_name = "robot/arm" + std::string(arm) + "/real_joints_positions";
         publish(payload, payload_len, topic_name);
 
         // Real joints velocities
+        payload_len = (uint32_t) sizeof(it->second.real_vel);
         memset( payload, 0, MAX_PAYLOAD_SIZE );
-        for (size_t idx=0; idx<sizeof(it->second.real_vel)/sizeof(double); idx++)
+        for (size_t idx=0; idx<payload_len/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_vel[idx] );
 
         topic_name = "robot/arm" + std::string(arm) + "/real_joints_velocities";
         publish(payload, payload_len, topic_name);
 
         // Target joints positions
+        payload_len = (uint32_t) sizeof(it->second.target_pos);
         memset( payload, 0, MAX_PAYLOAD_SIZE );
-        for (size_t idx=0; idx<sizeof(it->second.target_pos)/sizeof(double); idx++)
+        for (size_t idx=0; idx<payload_len/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
         
         topic_name = "robot/arm" + std::string(arm) + "/target_joints_positions";
         publish(payload, payload_len, topic_name);        
 
         // Target joints velocities
+        payload_len = (uint32_t) sizeof(it->second.target_vel);
         memset( payload, 0, MAX_PAYLOAD_SIZE );
-        for (size_t idx=0; idx<sizeof(it->second.target_vel)/sizeof(double); idx++)
+        for (size_t idx=0; idx<payload_len/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_vel[idx] );
         
         topic_name = "robot/arm" + std::string(arm) + "/target_joints_velocities";
         publish(payload, payload_len, topic_name);
+
       }
 
       std::map<size_t,c5gopen::RobotCartStateArray> robot_cart_state_log_ = c5gopen_driver->getRobotCartStateArray( );      
@@ -123,29 +126,36 @@ namespace c5gopen
         char arm[10]; 
         sprintf(arm,"%d",it->first);
 
-        payload_len = (uint32_t)(sizeof(double) * 6 + sizeof(char) * 80);
-
         // Real Cartesian positions
+        uint32_t payload_len_d = (uint32_t) sizeof(it->second.real_pos);
+        uint32_t payload_len_c = (uint32_t) sizeof(it->second.config_flags_real);
+        payload_len = (uint32_t)( payload_len_d + payload_len_c );
+
         memset( payload, 0, MAX_PAYLOAD_SIZE );
-        for (size_t idx=0; idx<sizeof(it->second.real_pos)/sizeof(double); idx++)
+        for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
 
-        for (size_t idx=0; idx<sizeof(it->second.config_flags_real)/sizeof(char); idx++)
-          snprintf ( (char*)payload + sizeof(it->second.target_pos) + sizeof(char) * idx , MAX_PAYLOAD_SIZE, "%s", it->second.config_flags_real[idx] );
+        for (size_t idx=0; idx<payload_len_c/sizeof(char); idx++)
+          snprintf ( (char*)payload + sizeof(double) * sizeof(it->second.real_pos) + 1 + sizeof(char) * idx , MAX_PAYLOAD_SIZE, "%s", (char*) it->second.config_flags_real[idx] );
 
         topic_name = "robot/arm" + std::string(arm) + "/real_cartesian_positions";
         publish( payload, payload_len, topic_name );
 
         // Target Cartesian positions
+        payload_len_d = (uint32_t) sizeof(it->second.target_pos);
+        payload_len_c = (uint32_t) sizeof(it->second.config_flags_target);
+        payload_len = (uint32_t)( payload_len_d + payload_len_c );
+
         memset( payload, 0, MAX_PAYLOAD_SIZE );
-        for (size_t idx=0; idx<sizeof(it->second.target_pos)/sizeof(double); idx++)
+        for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
 
-        for (size_t idx=0; idx<sizeof(it->second.config_flags_target)/sizeof(char); idx++)
-          snprintf ( (char*)payload + sizeof(it->second.target_pos) + sizeof(char) * idx , MAX_PAYLOAD_SIZE, "%s", it->second.config_flags_target[idx] );
+        for (size_t idx=0; idx<payload_len_c/sizeof(char); idx++)
+          snprintf ( (char*)payload + sizeof(double) * sizeof(it->second.target_pos) + 1 + sizeof(char) * idx , MAX_PAYLOAD_SIZE, "%s", (char*) it->second.config_flags_target[idx] );
           
         topic_name = "robot/arm" + std::string(arm) + "/target_cartesian_positions";
         publish( payload, payload_len, topic_name );
+
       }
 
       std::map<size_t,c5gopen::RobotGenericArray> robot_motor_current_log_ = c5gopen_driver->getRobotMotorCurrentArray( );      
@@ -153,11 +163,11 @@ namespace c5gopen
       {
         char arm[10]; 
         sprintf(arm,"%d",it->first);
-        payload_len = (uint32_t)(sizeof(double) * ORL_MAX_AXIS);
+        payload_len = (uint32_t) sizeof(it->second.value);
 
         // Motor currents
         memset( payload, 0, MAX_PAYLOAD_SIZE );
-        for (size_t idx=0; idx<sizeof(it->second.value)/sizeof(double); idx++)
+        for (size_t idx=0; idx<payload_len/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.value[idx] );
 
         topic_name = "robot/arm" + std::string(arm) + "/motor_currents";

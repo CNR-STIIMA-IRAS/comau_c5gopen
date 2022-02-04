@@ -69,6 +69,7 @@ int  main (int argc, char **argv)
   // Create logger 
   // ************************************************
   std::shared_ptr<cnr_logger::TraceLogger> logger( new cnr_logger::TraceLogger( "c5gopen", c5gopen_cfg.cnr_logger_cfg_file, true, true));  
+  CNR_INFO( *logger, "Created the logger.");
 
   try
   {
@@ -80,6 +81,8 @@ int  main (int argc, char **argv)
                                                                                 c5gopen_cfg.mqtt_cfg_.mqtt_port_,
                                                                                 logger) ) ;
 
+    CNR_INFO( *logger, "Created iot_client.");
+
     for (const std::string& topic: c5gopen_cfg.mqtt_cfg_.mqtt_sub_topics_)
       iot_client->subscribe( NULL, topic.c_str(), 1 );
 
@@ -87,6 +90,7 @@ int  main (int argc, char **argv)
     // Create, initialize and run C5GOpen driver  
     // ************************************************
     std::shared_ptr<c5gopen::C5GOpenDriver> c5gopen_driver( new c5gopen::C5GOpenDriver( c5gopen_cfg.c5gopen_driver_cfg_, logger ));
+    CNR_INFO( *logger, "Created C5GOpen driver.");
 
 #ifndef C5GOPEN_NOT_ENABLED
     if ( !c5gopen_driver->init() ) 
@@ -94,12 +98,14 @@ int  main (int argc, char **argv)
       CNR_ERROR( *logger, "Unable to init C5GOpen");
       return -1;
     }
+    CNR_INFO( *logger, "C5GOpen driver initialized.");
       
     if ( !c5gopen_driver->run() )
     {
       CNR_ERROR( *logger, "Unable to run C5GOpen");
       return -1;
     }
+    CNR_INFO( *logger, "C5GOpen driver running...");
 #endif
 
     // ************************************************
