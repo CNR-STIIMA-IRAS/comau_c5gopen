@@ -193,7 +193,7 @@ namespace c5gopen
       {
         std::cout << cnr_logger::RED() << "Error: the CNR_LOGGER configuration file: " << c5gopen_cfg.cnr_logger_cfg_file << " does not exists." << cnr_logger::RESET() << std::endl;
         return false;
-      }  
+      }
     }
       
     std::cout << cnr_logger::WHITE() << "Configuration parameter loaded from file: " << config_file_name << cnr_logger::RESET() << std::endl;

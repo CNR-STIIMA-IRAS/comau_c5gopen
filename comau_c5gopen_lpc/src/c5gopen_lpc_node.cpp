@@ -88,18 +88,7 @@ int  main (int argc, char **argv)
     // ************************************************
     std::shared_ptr<c5gopen::C5GOpenDriver> c5gopen_driver( new c5gopen::C5GOpenDriver( c5gopen_cfg.c5gopen_driver_cfg_, logger ));
 
-//TO DEBUG!!!!!!
-
-    while(1)
-    {
-      if(iot_client)
-      {
-        iot_client->publish( c5gopen_driver );   
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    }
-
+#ifndef C5GOPEN_NOT_ENABLED
     if ( !c5gopen_driver->init() ) 
     {
       CNR_ERROR( *logger, "Unable to init C5GOpen");
@@ -111,10 +100,14 @@ int  main (int argc, char **argv)
       CNR_ERROR( *logger, "Unable to run C5GOpen");
       return -1;
     }
+#endif
 
     // ************************************************
     // Enter in the infinite loop  
     // ************************************************
+    CNR_INFO(*logger, "Entering in the c5gopen_lpc_node infinite loop");
+
+#ifndef C5GOPEN_NOT_ENABLED
     while(c5gopen_driver->getC5GOpenThreadsStatus() != c5gopen::thread_status::CLOSED ||
           c5gopen_driver->getComThreadsStatus() != c5gopen::thread_status::CLOSED || 
           c5gopen_driver->getLoopConsoleThreadsStatus() != c5gopen::thread_status::CLOSED )
@@ -126,6 +119,17 @@ int  main (int argc, char **argv)
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+#else
+    while(1)
+    {
+      if(iot_client)
+      {
+        iot_client->publish( c5gopen_driver );   
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+#endif
+
   }
   catch ( std::invalid_argument& e )
   {

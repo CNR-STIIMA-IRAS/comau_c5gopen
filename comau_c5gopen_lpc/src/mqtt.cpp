@@ -172,8 +172,6 @@ namespace cnr
       * qos = 2 - publish with QoS 2 for this example
       * retain = false - do not use the retained message feature for this message
       */
-
-
       int rc = mosquitto_publish(mosq, NULL, topic_name.c_str(), payload_len, payload, 0, false);
       if( rc != MOSQ_ERR_SUCCESS )
       {
