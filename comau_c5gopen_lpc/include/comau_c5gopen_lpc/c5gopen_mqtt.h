@@ -58,20 +58,21 @@ namespace c5gopen
     std::string topic_name;
 
   public:
-    C5GOpenMQTT (const char *id, const char *host, int port, std::shared_ptr<cnr_logger::TraceLogger>& logger):
+    C5GOpenMQTT (const char *id, const char *host, int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger):
                   MQTTClient(id, host, port, logger)
     {
-      //payload_ptr = reinterpret_cast<uint8_t*>(&payload_d);
+      // Nothing to do here  
     }
  
     ~C5GOpenMQTT() { };
 
-    bool publish( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver );
-
-    using MQTTClient::publish; // to make the method of base class visible again
+    bool publishData( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver );
+    bool subscribeTopic( const std::string& sub_topic_name );
+    bool updateRobotTargetTrajectory( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver );
+    
   }; 
 
-  inline bool C5GOpenMQTT::publish( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver )
+  inline bool C5GOpenMQTT::publishData( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver )
   {
     //if ( c5gopen_driver->getSystemInitialized() )
     if (1)
@@ -178,11 +179,69 @@ namespace c5gopen
     }
     else
     {
-      std::cout << cnr_logger::RED() << "C5GOpen not initialized." << cnr_logger::RESET() << std::endl;
+      CNR_ERROR( logger_, "C5GOpen not initialized.");
       return false;
-    }
-   
+    } 
   }
+
+
+  inline bool C5GOpenMQTT::subscribeTopic( const std::string& sub_topic_name )
+  {
+    if ( subscribe( NULL, sub_topic_name.c_str(), 1 ) != MOSQ_ERR_SUCCESS )
+      return false;
+
+    CNR_INFO(logger_, "Subscribed topic: " << sub_topic_name.c_str() );
+
+    return true;
+  }
+
+  inline bool C5GOpenMQTT::updateRobotTargetTrajectory( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver )
+  {
+    if (loop() != MOSQ_ERR_SUCCESS)
+      return false;
+    
+    std::map<std::string,std::pair<int, cnr::MQTTPayload>> last_messages = getLastReceivedMessage( );
+
+    for (auto it=last_messages.begin(); it!=last_messages.end(); it++)
+    {
+      std::size_t found_arm = it->first.find("arm");
+      if ( found_arm == std::string::npos )
+        CNR_ERROR(logger_, "Cannot find 'arm' in the MQTT subscribed topic.");
+
+      std::size_t found_delimiter = it->first.find("/",found_arm+1);
+      if ( found_delimiter == std::string::npos )
+        CNR_ERROR(logger_, "Cannot find delimiter '/' after 'arm' in the MQTT subscribed topic.");
+      
+      char arm_number[10] = {0};
+      it->first.copy(arm_number,found_delimiter-(found_arm+3),found_arm+3);
+    
+      size_t arm = atoi(std::string(arm_number).c_str());
+
+      std::pair<int, cnr::MQTTPayload> msg_complete = it->second;
+      
+      // Expected payload 8bytes every joints -> maximum joint expected is 10
+      if( std::get<0>(msg_complete)%sizeof(double) != 0 || std::get<0>(msg_complete)/sizeof(double) > ORL_MAX_AXIS )
+      {
+        CNR_ERROR(logger_, "Invalid number of bytes for the subscribed topic: " << it->first );  
+        return false;
+      }
+
+      char c[8] = {0};
+      c5gopen::RobotJointState target_joint_position;
+      
+      for(size_t idx=0; idx<std::get<0>(msg_complete)/sizeof(double); idx++)
+      {
+        memcpy(c, std::get<1>(msg_complete).payload + idx * sizeof(double), sizeof(double));
+        target_joint_position.target_pos.value[idx] = atof(c);
+        memset(c,0x0,sizeof(double));
+      } 
+      
+      c5gopen_driver->setRobotJointAbsoluteTargetPosition(arm, target_joint_position); 
+    }
+     
+    return true;
+  }
+
 } // end namespace
 
 #endif //SIMPLECLIENT_MQTT_H

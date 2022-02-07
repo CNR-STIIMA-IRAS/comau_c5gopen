@@ -69,7 +69,7 @@ int  main (int argc, char **argv)
   // Create logger 
   // ************************************************
   std::shared_ptr<cnr_logger::TraceLogger> logger( new cnr_logger::TraceLogger( "c5gopen", c5gopen_cfg.cnr_logger_cfg_file, true, true));  
-  CNR_INFO( *logger, "Created the logger.");
+  CNR_INFO( logger, "Created the logger.");
 
   try
   {
@@ -81,37 +81,40 @@ int  main (int argc, char **argv)
                                                                                 c5gopen_cfg.mqtt_cfg_.mqtt_port_,
                                                                                 logger) ) ;
 
-    CNR_INFO( *logger, "Created iot_client.");
+    CNR_INFO( logger, "Created iot_client.");
 
     for (const std::string& topic: c5gopen_cfg.mqtt_cfg_.mqtt_sub_topics_)
-      iot_client->subscribe( NULL, topic.c_str(), 1 );
+    {
+      if (!iot_client->subscribeTopic( topic.c_str() )) 
+        CNR_ERROR( logger, "Can't subscribe topic: " << topic.c_str() << " from MQTT broker");
+    }
 
     // ************************************************
     // Create, initialize and run C5GOpen driver  
     // ************************************************
     std::shared_ptr<c5gopen::C5GOpenDriver> c5gopen_driver( new c5gopen::C5GOpenDriver( c5gopen_cfg.c5gopen_driver_cfg_, logger ));
-    CNR_INFO( *logger, "Created C5GOpen driver.");
+    CNR_INFO( logger, "Created C5GOpen driver.");
 
 #ifndef C5GOPEN_NOT_ENABLED
     if ( !c5gopen_driver->init() ) 
     {
-      CNR_ERROR( *logger, "Unable to init C5GOpen");
+      CNR_ERROR( logger, "Unable to init C5GOpen");
       return -1;
     }
-    CNR_INFO( *logger, "C5GOpen driver initialized.");
+    CNR_INFO( logger, "C5GOpen driver initialized.");
       
     if ( !c5gopen_driver->run() )
     {
-      CNR_ERROR( *logger, "Unable to run C5GOpen");
+      CNR_ERROR( logger, "Unable to run C5GOpen.");
       return -1;
     }
-    CNR_INFO( *logger, "C5GOpen driver running...");
+    CNR_INFO( logger, "C5GOpen driver running...");
 #endif
 
     // ************************************************
     // Enter in the infinite loop  
     // ************************************************
-    CNR_INFO(*logger, "Entering in the c5gopen_lpc_node infinite loop");
+    CNR_INFO( logger, "Entering in the c5gopen_lpc_node infinite loop.");
 
 #ifndef C5GOPEN_NOT_ENABLED
     while(c5gopen_driver->getC5GOpenThreadsStatus() != c5gopen::thread_status::CLOSED ||
@@ -120,7 +123,11 @@ int  main (int argc, char **argv)
     {
       if(iot_client)
       {
-        iot_client->publish( c5gopen_driver );   
+        if (!iot_client->publishData( c5gopen_driver ))
+          CNR_ERROR( logger, "Can't publish data to MQTT broker.");     
+
+        if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver ))
+          CNR_ERROR( logger, "Can't update robot target trajectory.");
       }
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -130,7 +137,11 @@ int  main (int argc, char **argv)
     {
       if(iot_client)
       {
-        iot_client->publish( c5gopen_driver );   
+        if (!iot_client->publishData( c5gopen_driver ))
+          CNR_ERROR( logger, "Can't publish data to MQTT broker.");
+        
+        if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver ))
+          CNR_ERROR( logger, "Can't update robot target trajectory.");
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
@@ -139,18 +150,18 @@ int  main (int argc, char **argv)
   }
   catch ( std::invalid_argument& e )
   {
-    CNR_ERROR( *logger, "Invalid argument " + std::string(e.what())  );
+    CNR_ERROR( logger, "Invalid argument " + std::string(e.what())  );
     return -1;
   }
   catch (...)
   {
-    CNR_ERROR( *logger, "Unhandled exception!");
+    CNR_ERROR( logger, "Unhandled exception!");
     return -1;
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-  CNR_INFO(*logger, "Closing the main c5gopen node");
+  CNR_INFO( logger, "Closing the main c5gopen node");
   
   return 0;
 }

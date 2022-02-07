@@ -24,10 +24,36 @@ The package comau_c5gopen_lpc is developed and tested on:
 - sudo ./c5gopen_lpc_node
 
 
+# C5GOPEN MQTT publisher topics
+
+Topics published by the c5gopen_lpc_node:
+- "robot/armXXX/real_joints_positions"
+- "robot/armXXX/real_joints_velocities"
+- "robot/armXXX/target_joints_positions"
+- "robot/armXXX/target_joints_velocities"
+- "robot/armXXX/real_cartesian_positions"
+- "robot/armXXX/target_cartesian_positions"
+- "robot/armXXX/motor_currents"
+
+Example to read the topic:
+
+mosquitto_sub -h BROKER_IP_ADDRESS -t robot/arm1/target_joints_trajectory
+
+
+
+# C5GOPEN MQTT subscriber topics
+
+Topics subscribed by the c5gopen_lpc_node are defined in the configuration file cfg/c5gopen_cfg, an example to publish a topic with mosquitto_pub is:
+
+mosquitto_pub -h BROKER_IP_ADDRESS -t robot/arm3/target_joints_trajectory -m "123.4567123.4567123.4567123.4567123.4567123.4567123.4567123.4567123.4567123.4567" --repeat 1000 --repeat-delay 1
+
+N.B: the c5gopen_lpc_node expects a 80bytes of mosquitto payload, 8bytes for 10 joints as in the example above.
+
+
 # Dependencies
 - Boost
 - cnr_logger (https://github.com/CNR-STIIMA-IRAS/cnr_logger)
-- mqtt_cpp (https://github.com/redboltz/mqtt_cpp)
+- mosquitto 
 
 
 # WARNING

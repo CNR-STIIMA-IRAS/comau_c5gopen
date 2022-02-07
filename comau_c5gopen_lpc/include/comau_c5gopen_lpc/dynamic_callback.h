@@ -134,7 +134,7 @@ namespace cnr
   private:
       static void GeneratedStaticFunction( void *obj, const struct mosquitto_message *msg)
       {
-          return StaticInvoke(context , obj,msg);
+          return StaticInvoke(context , obj, msg);
       }
   };
 
@@ -178,7 +178,6 @@ namespace cnr
       on_connect_callback m_cbCallback;
       int m_nAllocIndex;
 
-  private:
   //     MemberFunctionCallback( const MemberFunctionCallback& os );
   //     MemberFunctionCallback& operator=( const MemberFunctionCallback& os );
   };
@@ -198,7 +197,6 @@ namespace cnr
       on_message_callback m_cbCallback;
       int m_nAllocIndex;
 
-  private:
   //     MemberFunctionCallback( const MemberFunctionCallback& os );
   //     MemberFunctionCallback& operator=( const MemberFunctionCallback& os );
   };
@@ -218,7 +216,6 @@ namespace cnr
       on_subscribe_callback m_cbCallback;
       int m_nAllocIndex;
 
-  private:
   //     MemberFunctionCallback( const MemberFunctionCallback& os );
   //     MemberFunctionCallback& operator=( const MemberFunctionCallback& os );
   };
@@ -238,7 +235,6 @@ namespace cnr
       on_publish_callback m_cbCallback;
       int m_nAllocIndex;
 
-  private:
   //     MemberFunctionCallback( const MemberFunctionCallback& os );
   //     MemberFunctionCallback& operator=( const MemberFunctionCallback& os );
   };

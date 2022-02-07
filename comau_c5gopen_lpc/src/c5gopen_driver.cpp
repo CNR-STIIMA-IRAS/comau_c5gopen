@@ -57,7 +57,7 @@ namespace c5gopen
   }
 
   C5GOpenDriver::C5GOpenDriver( const c5gopen::C5GOpenDriverCfg& c5gopen_cfg, 
-                                std::shared_ptr<cnr_logger::TraceLogger>& logger ): 
+                                const std::shared_ptr<cnr_logger::TraceLogger>& logger ): 
                                 c5gopen_ctrl_idx_orl_(c5gopen_cfg.ctrl_idx_orl_),  
                                 c5gopen_ip_ctrl_(c5gopen_cfg.ip_ctrl_), 
                                 c5gopen_sys_id_(c5gopen_cfg.sys_id_), 
@@ -250,11 +250,18 @@ namespace c5gopen
 
   bool C5GOpenDriver::setRobotJointAbsoluteTargetPosition( const size_t& arm, const RobotJointState& joint_state )
   {
+    if (std::find(active_arms_.begin(), active_arms_.end(), arm) == active_arms_.end() )
+    {
+      CNR_WARN(*logger_, "The joint target position setpoint is defined for arm: " << arm 
+                          << " but the arm is not activated, the desired trajectory will not by applied. Please activate the arm.");
+      return false;
+    }       
+
     if ( !absolute_target_jnt_position_[arm]->full() )
       absolute_target_jnt_position_[arm]->push_back(joint_state);
     else
       return false;
-      
+
     return true;
   }
 

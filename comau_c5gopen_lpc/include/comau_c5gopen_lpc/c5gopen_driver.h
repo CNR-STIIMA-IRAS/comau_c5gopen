@@ -65,7 +65,7 @@ namespace c5gopen
   public:
     typedef std::shared_ptr<C5GOpenDriver> Ptr;
     C5GOpenDriver(const c5gopen::C5GOpenDriverCfg& c5gopen_cfg, 
-                  std::shared_ptr<cnr_logger::TraceLogger>& logger ); 
+                  const std::shared_ptr<cnr_logger::TraceLogger>& logger ); 
 
     ~C5GOpenDriver();
 

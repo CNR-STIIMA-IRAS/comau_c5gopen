@@ -39,19 +39,26 @@
 
 #include <cstring>
 #include <cstdio>
+#include <mutex>
 #include <mosquitto.h>
 
 #include <cnr_logger/cnr_logger.h>
 
-#define MAX_PAYLOAD 50
+#define MAX_PAYLOAD 1024
 #define DEFAULT_KEEP_ALIVE 60
 
 namespace cnr
 {
+
+  struct MQTTPayload
+  { 
+    char payload[MAX_PAYLOAD] = {0};  
+  };
+
   class MQTTClient 
   {
   private: 
-    mosquitto *mosq;
+    struct mosquitto *mosq;
     uint8_t obj[1024];
     int stop_raised = 0;
 
@@ -59,7 +66,7 @@ namespace cnr
     std::shared_ptr<cnr_logger::TraceLogger> logger_;
   
   public:
-    MQTTClient (const char *id, const char *host, int port, std::shared_ptr<cnr_logger::TraceLogger>& logger);
+    MQTTClient (const char *id, const char *host, int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger);
     ~MQTTClient();
 
     int loop();
@@ -67,7 +74,8 @@ namespace cnr
 
     int reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff);
     int subscribe(uint16_t *mid, const char *sub, int qos=0);
-    virtual void publish(const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name);
+    void publish(const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name);
+    std::map<std::string,std::pair<int,struct cnr::MQTTPayload>> getLastReceivedMessage( );
 
     typedef void (MQTTClient::*on_connect_callback)  (void *obj, int reason_code);
     typedef void (MQTTClient::*on_message_callback)  (void *obj, const struct mosquitto_message *msg);
