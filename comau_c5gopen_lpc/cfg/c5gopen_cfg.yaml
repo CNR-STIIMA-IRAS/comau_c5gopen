@@ -1,8 +1,21 @@
-arms_config:
-  nArm: 1
-  activeArm: [1]  # [1, 2, 3, 4]
+c5gopen_ctrl:
+  ctrl_idx: 1 # allowed values: from 1 to 32  
+  ip_ctrl: 192.168.254.240 
+  sys_id: CNTRLC5G_2107987
+  period: 0.4 #[ms] allowed values are: 0.4 - 2.0 - 4.0 - 8.0 - 16.0 ]
+  active_arms: [2,3]  # [1, 2, 3, 4]
 
 robot_frames:
-  base_frame: { x: 0.0, y: 0.0, z: 0.0, a: 0.0, e: 0.0, r: 0.0 }
-  user_frame: { x: 0.0, y: 0.0, z: 0.0, a: 0.0, e: 0.0, r: 0.0 }
-  tool_frame: { x: 0.0, y: 0.0, z: 0.0, a: 0.0, e: 0.0, r: 0.0 }
+  base_frame: [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] #the format is [x, y, z, a, e, r]
+  user_frame: [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] #the format is [x, y, z, a, e, r]
+  tool_frame: [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] #the format is [x, y, z, a, e, r]
+
+mqtt:
+  client_id: "Client_ID"
+  broker_address: "192.168.1.114"
+  #broker_address: 10.2.13.32
+  port: 1883
+  sub_topics: ["robot/arm3/target_joints_trajectory","robot/arm2/target_joints_trajectory"] # ["topic1", "topic2"]
+
+cnr_logger:
+  logger_cfg_file: /home/c5gopen/comau_devel_ws/src/comau_c5gopen/comau_c5gopen_lpc/cfg/log_cfg.yaml

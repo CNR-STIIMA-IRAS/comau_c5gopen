@@ -2,7 +2,7 @@ appenders: ['file', 'screen']           # Mandatory
                                         # A vector od dimension 1 or 2, where you can select if the output will be streamed to file, to screen or to both
                                         # (the order in the vector is not important)
 
-levels: [ debug|info|warn|error|fatal, debug|info|warn|error|fatal, ] 
+levels: [ debug|info|warn|error|fatal, debug|info|warn|error|fatal ] 
                                         # Optional
                                         # A vector where you can select the verbosity level for each appender.
                                         # If not present, or if the size of the vector is different from the dimension of the appenders,

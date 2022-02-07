@@ -33,6 +33,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* author Enrico Villagrossi (enrico.villagrossi@stiima.cnr.it) */
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netdb.h>

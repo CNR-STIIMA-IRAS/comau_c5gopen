@@ -33,9 +33,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CNR__RT__UTILS__H__
-#define __CNR__RT__UTILS__H__
+/* author Enrico Villagrossi (enrico.villagrossi@stiima.cnr.it) */
 
+#ifndef REALTIME_UTILITIES_H
+#define REALTIME_UTILITIES_H
 
 #include <stdlib.h>
 #include <stdio.h>
