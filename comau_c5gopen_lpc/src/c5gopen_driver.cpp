@@ -178,46 +178,47 @@ namespace c5gopen
 
   std::map<size_t,RobotJointStateArray> C5GOpenDriver::getRobotJointStateLinkArray( )
   {
+    RobotJointStateArray joint_state_zero;
+    memset(&joint_state_zero,0x0,sizeof(RobotJointState));
     std::map<size_t,RobotJointStateArray> robot_joint_state_link_;
+
     for (const size_t& arm : active_arms_)
     {
-      for (size_t iAx=0; iAx<sizeof(robot_joint_state_link_log_[arm].target_pos.value)/sizeof(double); iAx++)
-      {
-        robot_joint_state_link_[arm].target_pos[iAx]  = robot_joint_state_link_log_[arm].target_pos.value[iAx];
-        robot_joint_state_link_[arm].real_pos[iAx]    = robot_joint_state_link_log_[arm].real_pos.value[iAx];
-        robot_joint_state_link_[arm].target_vel[iAx]  = robot_joint_state_link_log_[arm].target_vel.value[iAx];
-        robot_joint_state_link_[arm].real_vel[iAx]    = robot_joint_state_link_log_[arm].real_vel.value[iAx];
-      }
+      robot_joint_state_link_.insert(std::make_pair(arm,joint_state_zero));
+      memcpy(robot_joint_state_link_[arm].target_pos, robot_joint_state_link_log_[arm].target_pos.value,  sizeof(robot_joint_state_link_log_[arm].target_pos.value)); 
+      memcpy(robot_joint_state_link_[arm].real_pos,   robot_joint_state_link_log_[arm].real_pos.value,    sizeof(robot_joint_state_link_log_[arm].real_pos.value)); 
+      memcpy(robot_joint_state_link_[arm].target_vel, robot_joint_state_link_log_[arm].target_vel.value,  sizeof(robot_joint_state_link_log_[arm].target_vel.value)); 
+      memcpy(robot_joint_state_link_[arm].real_vel,   robot_joint_state_link_log_[arm].real_vel.value,    sizeof(robot_joint_state_link_log_[arm].real_vel.value)); 
     }
     return robot_joint_state_link_;
   }
 
   std::map<size_t,RobotJointStateArray> C5GOpenDriver::getRobotJointStateMotorArray( )
   {
+    RobotJointStateArray joint_state_zero;
+    memset(&joint_state_zero,0x0,sizeof(RobotJointState));
     std::map<size_t,RobotJointStateArray> robot_joint_state_motor_;
     for (const size_t& arm : active_arms_)
     {
-      for (size_t iAx=0; iAx<sizeof(robot_joint_state_motor_log_[arm].target_pos.value)/sizeof(double); iAx++)
-      {
-        robot_joint_state_motor_[arm].target_pos[iAx] = robot_joint_state_motor_log_[arm].target_pos.value[iAx];
-        robot_joint_state_motor_[arm].real_pos[iAx]   = robot_joint_state_motor_log_[arm].real_pos.value[iAx];
-        robot_joint_state_motor_[arm].target_vel[iAx] = robot_joint_state_motor_log_[arm].target_vel.value[iAx];
-        robot_joint_state_motor_[arm].real_vel[iAx]   = robot_joint_state_motor_log_[arm].real_vel.value[iAx];
-      }
+      robot_joint_state_motor_.insert(std::make_pair(arm,joint_state_zero));
+      memcpy(robot_joint_state_motor_[arm].target_pos, robot_joint_state_motor_log_[arm].target_pos.value,  sizeof(robot_joint_state_motor_log_[arm].target_pos.value)); 
+      memcpy(robot_joint_state_motor_[arm].real_pos,   robot_joint_state_motor_log_[arm].real_pos.value,    sizeof(robot_joint_state_motor_log_[arm].real_pos.value)); 
+      memcpy(robot_joint_state_motor_[arm].target_vel, robot_joint_state_motor_log_[arm].target_vel.value,  sizeof(robot_joint_state_motor_log_[arm].target_vel.value)); 
+      memcpy(robot_joint_state_motor_[arm].real_vel,   robot_joint_state_motor_log_[arm].real_vel.value,    sizeof(robot_joint_state_motor_log_[arm].real_vel.value)); 
     }
     return robot_joint_state_motor_;
   }
 
   std::map<size_t,RobotCartStateArray> C5GOpenDriver::getRobotCartStateArray( )
   {
+    RobotCartStateArray cart_state_zero;
+    memset(&cart_state_zero,0x0,sizeof(RobotCartStateArray));
     std::map<size_t,RobotCartStateArray> robot_cart_state_;
     for (const size_t& arm : active_arms_)
     {
-      for (size_t iFl=0; iFl<sizeof(robot_cart_state_log_[arm].target_pos.config_flags)/sizeof(char); iFl++)
-      {
-        robot_cart_state_[arm].config_flags_target[iFl] = robot_cart_state_log_[arm].target_pos.config_flags[iFl];
-        robot_cart_state_[arm].config_flags_real[iFl]   = robot_cart_state_log_[arm].real_pos.config_flags[iFl];
-      }
+      robot_cart_state_.insert(std::make_pair(arm,cart_state_zero));
+      memcpy(robot_cart_state_[arm].config_flags_target, robot_cart_state_log_[arm].target_pos.config_flags, sizeof(robot_cart_state_log_[arm].target_pos.config_flags));
+      memcpy(robot_cart_state_[arm].config_flags_real, robot_cart_state_log_[arm].real_pos.config_flags, sizeof(robot_cart_state_log_[arm].real_pos.config_flags));
       
       robot_cart_state_[arm].target_pos[0] = robot_cart_state_log_[arm].target_pos.x;
       robot_cart_state_[arm].target_pos[1] = robot_cart_state_log_[arm].target_pos.y;
@@ -238,11 +239,13 @@ namespace c5gopen
 
   std::map<size_t,RobotGenericArray> C5GOpenDriver::getRobotMotorCurrentArray( )
   {
+    RobotGenericArray gen_array_zero;
+    memset(&gen_array_zero,0x0,sizeof(RobotGenericArray));
     std::map<size_t,RobotGenericArray> robot_motor_current_;
     for (const size_t& arm : active_arms_)
     {
-      for (size_t iAx=0; iAx<sizeof(robot_motor_current_log_[arm].value)/sizeof(double); iAx++)
-        robot_motor_current_[arm].value[iAx] = robot_motor_current_log_[arm].value[iAx];
+      robot_motor_current_.insert(std::make_pair(arm,gen_array_zero));
+      memcpy(robot_motor_current_[arm].value, robot_motor_current_log_[arm].value, sizeof(robot_motor_current_log_[arm].value));
     }
 
     return robot_motor_current_;

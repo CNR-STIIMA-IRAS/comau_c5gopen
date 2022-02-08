@@ -136,8 +136,8 @@ namespace c5gopen
         for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
 
-        for (size_t idx=0; idx<payload_len_c/sizeof(char); idx++)
-          snprintf ( (char*)payload + sizeof(double) * sizeof(it->second.real_pos) + 1 + sizeof(char) * idx , MAX_PAYLOAD_SIZE, "%s", (char*) it->second.config_flags_real[idx] );
+        memcpy((char*)(payload + sizeof(it->second.real_pos)), it->second.config_flags_real, sizeof(it->second.config_flags_real) );  
+
 
         topic_name = "robot/arm" + std::string(arm) + "/real_cartesian_positions";
         publish( payload, payload_len, topic_name );
@@ -151,9 +151,8 @@ namespace c5gopen
         for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
 
-        for (size_t idx=0; idx<payload_len_c/sizeof(char); idx++)
-          snprintf ( (char*)payload + sizeof(double) * sizeof(it->second.target_pos) + 1 + sizeof(char) * idx , MAX_PAYLOAD_SIZE, "%s", (char*) it->second.config_flags_target[idx] );
-          
+        memcpy((char*)(payload + sizeof(it->second.target_pos)), it->second.config_flags_target, sizeof(it->second.config_flags_target) );
+
         topic_name = "robot/arm" + std::string(arm) + "/target_cartesian_positions";
         publish( payload, payload_len, topic_name );
 
@@ -222,7 +221,8 @@ namespace c5gopen
       // Expected payload 8bytes every joints -> maximum joint expected is 10
       if( std::get<0>(msg_complete)%sizeof(double) != 0 || std::get<0>(msg_complete)/sizeof(double) > ORL_MAX_AXIS )
       {
-        CNR_ERROR(logger_, "Invalid number of bytes for the subscribed topic: " << it->first );  
+        CNR_ERROR(logger_, "Invalid number of bytes for the subscribed topic: " << it->first 
+                          << ". Received: " << std::get<0>(msg_complete) << " bytes.");  
         return false;
       }
 
