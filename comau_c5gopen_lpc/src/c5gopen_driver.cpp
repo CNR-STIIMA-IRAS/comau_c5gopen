@@ -179,7 +179,7 @@ namespace c5gopen
   std::map<size_t,RobotJointStateArray> C5GOpenDriver::getRobotJointStateLinkArray( )
   {
     RobotJointStateArray joint_state_zero;
-    memset(&joint_state_zero,0x0,sizeof(RobotJointState));
+    memset(&joint_state_zero,0x0,sizeof(RobotJointStateArray));
     std::map<size_t,RobotJointStateArray> robot_joint_state_link_;
 
     for (const size_t& arm : active_arms_)
@@ -188,7 +188,7 @@ namespace c5gopen
       memcpy(robot_joint_state_link_[arm].target_pos, robot_joint_state_link_log_[arm].target_pos.value,  sizeof(robot_joint_state_link_log_[arm].target_pos.value)); 
       memcpy(robot_joint_state_link_[arm].real_pos,   robot_joint_state_link_log_[arm].real_pos.value,    sizeof(robot_joint_state_link_log_[arm].real_pos.value)); 
       memcpy(robot_joint_state_link_[arm].target_vel, robot_joint_state_link_log_[arm].target_vel.value,  sizeof(robot_joint_state_link_log_[arm].target_vel.value)); 
-      memcpy(robot_joint_state_link_[arm].real_vel,   robot_joint_state_link_log_[arm].real_vel.value,    sizeof(robot_joint_state_link_log_[arm].real_vel.value)); 
+      memcpy(robot_joint_state_link_[arm].real_vel,   robot_joint_state_link_log_[arm].real_vel.value,    sizeof(robot_joint_state_link_log_[arm].real_vel.value));
     }
     return robot_joint_state_link_;
   }
@@ -196,7 +196,7 @@ namespace c5gopen
   std::map<size_t,RobotJointStateArray> C5GOpenDriver::getRobotJointStateMotorArray( )
   {
     RobotJointStateArray joint_state_zero;
-    memset(&joint_state_zero,0x0,sizeof(RobotJointState));
+    memset(&joint_state_zero,0x0,sizeof(RobotJointStateArray));
     std::map<size_t,RobotJointStateArray> robot_joint_state_motor_;
     for (const size_t& arm : active_arms_)
     {

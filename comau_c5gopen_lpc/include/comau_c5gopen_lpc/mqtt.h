@@ -74,7 +74,7 @@ namespace cnr
 
     int reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff);
     int subscribe(uint16_t *mid, const char *sub, int qos=0);
-    void publish(const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name);
+    int publish(const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name);
     std::map<std::string,std::pair<int,struct cnr::MQTTPayload>> getLastReceivedMessage( );
 
     typedef void (MQTTClient::*on_connect_callback)  (void *obj, int reason_code);
