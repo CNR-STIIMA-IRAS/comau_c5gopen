@@ -74,15 +74,21 @@ namespace c5gopen
 
   inline bool C5GOpenMQTT::publishData( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver )
   {
-    //if ( c5gopen_driver->getSystemInitialized() )
-    if (1)
+    bool system_initialized = true;
+
+#ifndef C5GOPEN_NOT_ENABLED
+    system_initialized = c5gopen_driver->getSystemInitialized();
+#endif
+
+    if ( system_initialized )
     {
       std::map<size_t,c5gopen::RobotJointStateArray> robot_joint_state_link_log_ = c5gopen_driver->getRobotJointStateLinkArray( );      
+   
       for (std::map<size_t,c5gopen::RobotJointStateArray>::iterator it=robot_joint_state_link_log_.begin(); it!=robot_joint_state_link_log_.end(); it++ )
       {
         char arm[10]; 
         sprintf(arm,"%d",it->first);
-        
+       
         // Real joints positions
         payload_len = (uint32_t) sizeof(it->second.real_pos);
         memset( payload, 0, MAX_PAYLOAD_SIZE );
@@ -90,7 +96,8 @@ namespace c5gopen
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
 
         topic_name = "robot/arm" + std::string(arm) + "/real_joints_positions";
-        publish(payload, payload_len, topic_name);
+        if ( publish(payload, payload_len, topic_name) != MOSQ_ERR_SUCCESS )
+          return false; 
 
         // Real joints velocities
         payload_len = (uint32_t) sizeof(it->second.real_vel);
@@ -99,7 +106,8 @@ namespace c5gopen
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_vel[idx] );
 
         topic_name = "robot/arm" + std::string(arm) + "/real_joints_velocities";
-        publish(payload, payload_len, topic_name);
+        if ( publish(payload, payload_len, topic_name) != MOSQ_ERR_SUCCESS )
+          return false;
 
         // Target joints positions
         payload_len = (uint32_t) sizeof(it->second.target_pos);
@@ -108,7 +116,8 @@ namespace c5gopen
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
         
         topic_name = "robot/arm" + std::string(arm) + "/target_joints_positions";
-        publish(payload, payload_len, topic_name);        
+        if ( publish(payload, payload_len, topic_name) != MOSQ_ERR_SUCCESS )
+          return false;        
 
         // Target joints velocities
         payload_len = (uint32_t) sizeof(it->second.target_vel);
@@ -117,7 +126,8 @@ namespace c5gopen
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_vel[idx] );
         
         topic_name = "robot/arm" + std::string(arm) + "/target_joints_velocities";
-        publish(payload, payload_len, topic_name);
+        if ( publish(payload, payload_len, topic_name) != MOSQ_ERR_SUCCESS )
+          return false;
 
       }
 
@@ -140,7 +150,8 @@ namespace c5gopen
 
 
         topic_name = "robot/arm" + std::string(arm) + "/real_cartesian_positions";
-        publish( payload, payload_len, topic_name );
+        if ( publish( payload, payload_len, topic_name ) != MOSQ_ERR_SUCCESS )
+          return false;
 
         // Target Cartesian positions
         payload_len_d = (uint32_t) sizeof(it->second.target_pos);
@@ -154,8 +165,8 @@ namespace c5gopen
         memcpy((char*)(payload + sizeof(it->second.target_pos)), it->second.config_flags_target, sizeof(it->second.config_flags_target) );
 
         topic_name = "robot/arm" + std::string(arm) + "/target_cartesian_positions";
-        publish( payload, payload_len, topic_name );
-
+        if ( publish( payload, payload_len, topic_name ) != MOSQ_ERR_SUCCESS )
+          return false;
       }
 
       std::map<size_t,c5gopen::RobotGenericArray> robot_motor_current_log_ = c5gopen_driver->getRobotMotorCurrentArray( );      
@@ -171,16 +182,18 @@ namespace c5gopen
           snprintf ( (char*)payload + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.value[idx] );
 
         topic_name = "robot/arm" + std::string(arm) + "/motor_currents";
-        publish( payload, payload_len, topic_name );
+        if ( publish( payload, payload_len, topic_name ) != MOSQ_ERR_SUCCESS )
+          return false;
       }
 
       return true;
     }
     else
     {
-      CNR_ERROR( logger_, "C5GOpen not initialized.");
-      return false;
+      CNR_WARN( logger_, "C5GOpen not initialized yet, can't publish C5GOpen data.");
+      return true;
     } 
+
   }
 
 

@@ -150,7 +150,7 @@ namespace cnr
       int rc = mosquitto_subscribe(mosq, mid, sub, qos);
       if(rc != MOSQ_ERR_SUCCESS)
       {
-        CNR_ERROR(logger_, "Error subscribing: " << strerror_r(rc, errbuffer,1024) );
+        CNR_WARN(logger_, "Error on topic subscription: " << strerror_r(rc, errbuffer,1024) );
         /* We might as well disconnect if we were unable to subscribe */
         mosquitto_disconnect(mosq);
       }
@@ -158,7 +158,7 @@ namespace cnr
     }
 
     /* This function pretends to read some data from a sensor and publish it.*/
-    void MQTTClient::publish( const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name )
+    int MQTTClient::publish( const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name )
     {
       /* Publish the message
       * mosq - our client instance 
@@ -174,6 +174,7 @@ namespace cnr
       {
         CNR_ERROR(logger_, "Error publishing: " << strerror_r(rc, errbuffer,1024) );
       }
+      return rc;
     }
 
     std::map<std::string,std::pair<int,MQTTPayload>> MQTTClient::getLastReceivedMessage()
@@ -249,7 +250,6 @@ namespace cnr
       if(us.count()>max)  
         max = us.count();
     
-
       if(delta > DELTA_US)
       {
         log_mean.push_back(delta/cycle);
