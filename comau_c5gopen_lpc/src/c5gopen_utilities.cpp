@@ -295,27 +295,27 @@ namespace c5gopen
     return true;
   }
 
-  double get_c5gopen_period_in_usec( const size_t& c5gopen_period_orl )
+  size_t get_c5gopen_period_in_usec( const size_t& c5gopen_period_orl )
   {
     switch(c5gopen_period_orl)
     {
     case size_t(ORL_0_4_MILLIS):
-      return 400.0;
+      return 400;
     case size_t(ORL_2_0_MILLIS):
-      return 2000.0;
+      return 2000;
     case size_t(ORL_4_0_MILLIS):
-      return 4000.0;
+      return 4000;
     case size_t(ORL_8_0_MILLIS):
-      return 8000.0;
+      return 8000;
     case size_t(ORL_16_0_MILLIS):
-      return 16000.0;
+      return 16000;
     default:
       std::cout << cnr_logger::RED() << "Invalid working frequency! Allowed value are: 0.4 - 2.0 - 4.0 - 8.0 - 16.0 [ms]" << cnr_logger::RESET() << std::endl;
       return -1;
     }
   }
 
-  double get_c5gopen_period_in_nsec( const size_t& c5gopen_period_orl)
+  size_t get_c5gopen_period_in_nsec( const size_t& c5gopen_period_orl)
   {
     return get_c5gopen_period_in_usec(c5gopen_period_orl) * pow(10.0,3.0);
   }
