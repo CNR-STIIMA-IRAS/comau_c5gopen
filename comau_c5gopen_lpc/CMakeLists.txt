@@ -71,6 +71,7 @@ if (EORL_AVAILABLE)
                                   src/c5gopen_utilities.cpp
                                   src/realtime_utilities.cpp
                                   src/mqtt.cpp
+                                  src/c5gopen_mqtt.cpp  
                                   src/dynamic_callback.cpp )
 
   add_library(eorl SHARED IMPORTED)

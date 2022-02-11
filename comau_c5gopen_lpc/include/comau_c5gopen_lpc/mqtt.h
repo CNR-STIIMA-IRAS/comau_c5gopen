@@ -42,35 +42,37 @@
 #include <mutex>
 #include <mosquitto.h>
 
+#include <boost/circular_buffer.hpp>
 #include <cnr_logger/cnr_logger.h>
 
-#define MAX_PAYLOAD 1024
+#define MAX_PAYLOAD_SIZE 1024
 #define DEFAULT_KEEP_ALIVE 60
+#define LOG_SAMPLES 1000
+#define DELTA_US 1e5
 
 namespace cnr
 {
-
   struct MQTTPayload
   { 
-    char payload[MAX_PAYLOAD] = {0};  
+    char payload[MAX_PAYLOAD_SIZE] = {0};  
   };
-
   class MQTTClient 
   {
-  private: 
-    struct mosquitto *mosq;
-    uint8_t obj[1024];
-    int stop_raised = 0;
-
-  protected:
+  protected:  
     std::shared_ptr<cnr_logger::TraceLogger> logger_;
-  
+
+  private: 
+    struct mosquitto *mosq_;
+    uint8_t obj_[1024];
+    int stop_raised_ = 0; 
+    char errbuffer_[1024] = {0};
+
   public:
     MQTTClient (const char *id, const char *host, int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger);
     ~MQTTClient();
 
     int loop();
-    int stop() {return stop_raised=1;}
+    int stop() {return stop_raised_ = 1;}
 
     int reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff);
     int subscribe(uint16_t *mid, const char *sub, int qos=0);

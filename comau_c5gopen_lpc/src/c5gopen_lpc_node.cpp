@@ -128,12 +128,11 @@ int  main (int argc, char **argv)
           if (!iot_client->publishData( c5gopen_driver ))
             CNR_WARN( logger, "Can't publish data to MQTT broker.");     
 
-        // if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver ))
-        //   CNR_WARN( logger, "Can't update robot target trajectory.");
+          if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver ))
+            CNR_WARN( logger, "Can't update robot target trajectory.");
 
         }
       }
-
       std::this_thread::sleep_for(std::chrono::microseconds((int64_t) c5gopen::get_c5gopen_period_in_usec(c5gopen_cfg.c5gopen_driver_cfg_.c5gopen_period_orl_)));
     }
 #else
@@ -147,7 +146,7 @@ int  main (int argc, char **argv)
         if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver ))
           CNR_WARN( logger, "Can't update robot target trajectory.");
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 #endif
 

@@ -123,8 +123,8 @@ namespace c5gopen
   bool set_frames( const std::vector<double>& frame, ORL_cartesian_position& orl_frame );
   bool decode_modality( const int& si_modality, std::string& string );
   bool decode_c5gopen_frequency( const double& c5gopen_period_ms, size_t& c5gopen_period_orl );
-  double get_c5gopen_period_in_usec( const size_t& c5gopen_period_orl );
-  double get_c5gopen_period_in_nsec( const size_t& c5gopen_period_orl );
+  size_t get_c5gopen_period_in_usec( const size_t& c5gopen_period_orl );
+  size_t get_c5gopen_period_in_nsec( const size_t& c5gopen_period_orl );
 }
 
 #endif
