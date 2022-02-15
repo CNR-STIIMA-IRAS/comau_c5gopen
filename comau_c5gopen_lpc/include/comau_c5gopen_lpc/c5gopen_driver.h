@@ -55,9 +55,9 @@
 #include <comau_c5gopen_lpc/realtime_buffer_utils.h>
 
 #define LAST_MESS 0
+#define TARGET_POS_MAX_BUFF_LEN 100
+#define MAX_JNT_VEL_DEG_S 150 // [deg/s] to be acquired from robot controller
 
-#define target_pos_max_buff_len 100
-#define target_pos_max_buff_log_len 300
 namespace c5gopen
 {   
   class C5GOpenDriver: public std::enable_shared_from_this<c5gopen::C5GOpenDriver>
@@ -81,7 +81,7 @@ namespace c5gopen
     std::map<size_t,RobotJointState> getRobotJointStateLink( );
     std::map<size_t,RobotJointState> getRobotJointStateMotor( );
     std::map<size_t,RobotCartState> getRobotCartState( );
-    std::map<size_t,ORL_joint_value> getRobotMotorCurrent( );
+    std::map<size_t,RobotMotorCurrentState> getRobotMotorCurrent( );
     std::map<size_t,RobotJointStateArray> getRobotJointStateLinkArray( );
     std::map<size_t,RobotJointStateArray> getRobotJointStateMotorArray( );
     std::map<size_t,RobotCartStateArray> getRobotCartStateArray( );
@@ -132,25 +132,25 @@ namespace c5gopen
     std::map<size_t,size_t> modality_active_;
     std::map<size_t,size_t> modality_old_;
 
-    std::map<size_t,ORL_joint_value> actual_joints_position_;
-    std::map<size_t,ORL_joint_value> starting_jnt_position_;
-    std::map<size_t,ORL_joint_value> last_jnt_target_rcv_;
+    std::map<size_t,ORL_joint_value>        actual_joints_position_;
     std::map<size_t,ORL_cartesian_position> actual_cartesian_position_;
+    std::map<size_t,ORL_joint_value>        last_jnt_target_rcv_;
 
     std::map<size_t,realtime_buffer::CircBufferUnqPtr<RobotJointState>> absolute_target_jnt_position_;
  
     // Data structure for logging
-    std::map<size_t,RobotJointState> robot_joint_state_link_log_;
-    std::map<size_t,RobotJointState> robot_joint_state_motor_log_;
-    std::map<size_t,RobotCartState> robot_cart_state_log_;
-    std::map<size_t,ORL_joint_value> robot_motor_current_log_;
+    std::map<size_t,RobotJointState>          robot_joint_state_link_log_;
+    std::map<size_t,RobotJointState>          robot_joint_state_motor_log_;
+    std::map<size_t,RobotCartState>           robot_cart_state_log_;
+    std::map<size_t,RobotMotorCurrentState>   robot_motor_current_log_;
 
     
     // C5GOpen class internal methods
     void c5gopenThread( );
     void loggingThread( );
     void loopConsoleThread( );
-    bool initializeControlPosition( void );
+    bool initializeControlPosition( );
+    bool microinterpolate( );
     bool updateRobotState( );
     void setExitFromOpen( const size_t& arm );
 
