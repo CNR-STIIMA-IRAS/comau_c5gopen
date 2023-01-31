@@ -244,7 +244,7 @@ namespace c5gopen
     return true;
   }
 
-  bool C5GOpenMQTT::updateRobotTargetTrajectory( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver )
+  bool C5GOpenMQTT::updateRobotTargetTrajectory( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver, const size_t& loop_timeout )
   {
     bool system_initialized = true;
 
@@ -256,7 +256,7 @@ namespace c5gopen
     {
       Clock::time_point start_time_sub = Clock::now();
 
-      if (loop() != MOSQ_ERR_SUCCESS)
+      if (loop(loop_timeout) != MOSQ_ERR_SUCCESS)
         return false;
       
       std::map<std::string,std::pair<int, cnr::MQTTPayload>> last_messages = getLastReceivedMessage( );

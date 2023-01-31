@@ -121,6 +121,7 @@ namespace c5gopen
     std::string mqtt_broker_address_;
     size_t mqtt_port_;
     std::vector<std::string> mqtt_sub_topics_;
+    size_t mqtt_timeout_;
   };
   struct C5GOpenNodeCfg 
   {

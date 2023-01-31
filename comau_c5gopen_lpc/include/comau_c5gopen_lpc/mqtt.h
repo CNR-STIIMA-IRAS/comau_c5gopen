@@ -71,7 +71,7 @@ namespace cnr
     MQTTClient (const char *id, const char *host, int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger);
     ~MQTTClient();
 
-    int loop();
+    int loop(const int& timeout=1000);
     int stop() {return stop_raised_ = 1;}
 
     int reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff);

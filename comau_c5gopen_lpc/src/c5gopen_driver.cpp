@@ -488,7 +488,7 @@ namespace c5gopen
 
   bool C5GOpenDriver::microinterpolate( )
   {
-
+    // TO BE FINISHED
     return true;
   }
 

@@ -94,7 +94,7 @@ namespace cnr
   }
 
 
-  int MQTTClient::loop()
+  int MQTTClient::loop(const int& timeout)
   {
     /* Run the network loop in a blocking call. The only thing we do in this
     * example is to print incoming messages, so a blocking call here is fine.
@@ -106,7 +106,7 @@ namespace cnr
     
     int rc = 0;
     /* Run the network loop in a background thread, this call returns quickly. */
-    rc = mosquitto_loop(mosq_,2000);
+    rc = mosquitto_loop(mosq_,timeout);
     if(rc != MOSQ_ERR_SUCCESS)
     {
       mosquitto_destroy(mosq_);
