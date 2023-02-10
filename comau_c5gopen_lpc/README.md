@@ -55,6 +55,7 @@ N.B: the c5gopen_lpc_node expects a 80bytes of mosquitto payload, 8bytes for 10 
 
 
 # Dependencies
+
 - Boost
 - cnr_logger (https://github.com/CNR-STIIMA-IRAS/cnr_logger)
 - mosquitto 
@@ -83,4 +84,11 @@ Example of usage:
 
 
 # WARNING
- This package is under heavy development huge changes can happen.
+
+This package is under heavy development huge changes can happen.
+
+
+# CONTACT
+Enrico Villagrossi: enrico.villagrossi@stiima.cnr.it
+
+
