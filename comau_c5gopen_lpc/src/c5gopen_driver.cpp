@@ -296,9 +296,12 @@ namespace c5gopen
     else
       absolute_target_jnt_position_[arm]->push_back(joint_state);       
 
-    if ( !absolute_target_jnt_position_[arm]->empty() )
+    if ( !absolute_target_jnt_position_[arm]->empty() && !g_driver->robot_movement_enabled_[arm])
+    {
       g_driver->robot_movement_enabled_[arm] = true;
-
+      CNR_DEBUG( *logger_, "Recevived first trajectory point. Robot movements enabled." );
+    }
+      
     return true;
   }
 

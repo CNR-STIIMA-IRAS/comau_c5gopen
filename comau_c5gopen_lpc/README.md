@@ -21,11 +21,8 @@ The package comau_c5gopen_lpc is developed and tested on:
 - cd build
 - cmake ..
 - make
-<<<<<<< HEAD
 
 N.B. To transfer the file on the Comau LPC from a remote PC scp -r ./<c5Gopen_folder_package> c5gopen@IP_OF_COMAU_LPC:/home/c5gopen/<YOUR_WS>
-=======
->>>>>>> 9100855d361dae2f558a2d2ce8eb380953c322f2
 
 
 # C5GOPEN MQTT publisher topics

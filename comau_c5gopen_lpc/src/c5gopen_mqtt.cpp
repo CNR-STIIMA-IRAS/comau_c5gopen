@@ -295,6 +295,17 @@ namespace c5gopen
           target_joint_position.target_pos.value[idx] = atof(c);
           memset(c,0x0,sizeof(double));
         } 
+
+        CNR_DEBUG(logger_, "Recevived: " << target_joint_position.target_pos.value[0] << "  "
+                                          << target_joint_position.target_pos.value[1] << "  "
+                                          << target_joint_position.target_pos.value[2] << "  "
+                                          << target_joint_position.target_pos.value[3] << "  "
+                                          << target_joint_position.target_pos.value[4] << "  "
+                                          << target_joint_position.target_pos.value[5] << "  "
+                                          << target_joint_position.target_pos.value[6] << "  "
+                                          << target_joint_position.target_pos.value[7] << "  "
+                                          << target_joint_position.target_pos.value[8] << "  "
+                                          << target_joint_position.target_pos.value[9] << "  ");
         
         c5gopen_driver->setRobotJointAbsoluteTargetPosition(arm, target_joint_position); 
       }
