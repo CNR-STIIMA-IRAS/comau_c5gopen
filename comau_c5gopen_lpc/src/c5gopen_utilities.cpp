@@ -179,6 +179,15 @@ namespace c5gopen
       c5gopen_cfg.mqtt_cfg_.mqtt_sub_topics_ = cfg_file["mqtt"]["sub_topics"].as<std::vector<std::string>>();
 
 
+    if ( !(cfg_file["mqtt"]["timeout"] && cfg_file["mqtt"]["timeout"].IsScalar()) )
+    {
+      std::cout << cnr_logger::RED() << "Error: wrong format or missing element 'mqtt' -> 'timeout' " << cnr_logger::RESET() << std::endl;
+      return false;
+    }
+    else
+      c5gopen_cfg.mqtt_cfg_.mqtt_timeout_ = cfg_file["mqtt"]["timeout"].as<size_t>();
+
+
     // Load cnr_logger configuration parameters
     if ( !(cfg_file["cnr_logger"]["logger_cfg_file"] && cfg_file["cnr_logger"]["logger_cfg_file"].IsScalar()) )
     {

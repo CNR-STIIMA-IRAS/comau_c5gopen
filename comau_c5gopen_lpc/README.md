@@ -15,12 +15,17 @@ The package comau_c5gopen_lpc is developed and tested on:
 
 
 # How to run the c5gopen_lpc_node
-- install the eORL library (the eORL versione 2.42.7 is supported)
+- install the eORL library (the eORL version 2.42.7 is supported)
 - download the package
 - mkdir build
 - cd build
 - cmake ..
 - make
+<<<<<<< HEAD
+
+N.B. To transfer the file on the Comau LPC from a remote PC scp -r ./<c5Gopen_folder_package> c5gopen@IP_OF_COMAU_LPC:/home/c5gopen/<YOUR_WS>
+=======
+>>>>>>> 9100855d361dae2f558a2d2ce8eb380953c322f2
 
 
 # C5GOPEN MQTT publisher topics
@@ -50,6 +55,7 @@ N.B: the c5gopen_lpc_node expects a 80bytes of mosquitto payload, 8bytes for 10 
 
 
 # Dependencies
+
 - Boost
 - cnr_logger (https://github.com/CNR-STIIMA-IRAS/cnr_logger)
 - mosquitto 
@@ -78,4 +84,11 @@ Example of usage:
 
 
 # WARNING
- This package is under heavy development huge changes can happen.
+
+This package is under heavy development huge changes can happen.
+
+
+# CONTACT
+Enrico Villagrossi: enrico.villagrossi@stiima.cnr.it
+
+

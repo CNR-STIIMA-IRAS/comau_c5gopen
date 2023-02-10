@@ -84,14 +84,13 @@ namespace c5gopen
       ORL_joint_value joint_value_zero;
       memset(&joint_value_zero,0x0,sizeof(ORL_joint_value));
       actual_joints_position_.insert(std::make_pair(active_arm,joint_value_zero));
-      starting_jnt_position_.insert(std::make_pair(active_arm,joint_value_zero));      
       last_jnt_target_rcv_.insert(std::make_pair(active_arm,joint_value_zero));
     
       ORL_cartesian_position cart_position_zero;
       memset(&cart_position_zero,0x0,sizeof(ORL_cartesian_position));
       actual_cartesian_position_.insert(std::make_pair(active_arm,cart_position_zero));
 
-      absolute_target_jnt_position_.insert(std::make_pair(active_arm, std::unique_ptr<realtime_buffer::CircBuffer<RobotJointState>>( new realtime_buffer::CircBuffer<RobotJointState>(target_pos_max_buff_len))));
+      absolute_target_jnt_position_.insert(std::make_pair(active_arm, std::unique_ptr<realtime_buffer::CircBuffer<RobotJointState>>( new realtime_buffer::CircBuffer<RobotJointState>(TARGET_POS_MAX_BUFF_LEN))));
 
       // Data structure for logging initialization
       RobotJointState joint_state_zero;
@@ -103,7 +102,9 @@ namespace c5gopen
       memset(&cart_state_zero,0x0,sizeof(RobotCartState));
       robot_cart_state_log_.insert(std::make_pair(active_arm,cart_state_zero));
 
-      robot_motor_current_log_.insert(std::make_pair(active_arm,joint_value_zero));
+      RobotMotorCurrentState motor_current_zero;
+      memset(&motor_current_zero,0x0,sizeof(RobotMotorCurrentState));
+      robot_motor_current_log_.insert(std::make_pair(active_arm,motor_current_zero));
     }
 
   };
@@ -171,7 +172,7 @@ namespace c5gopen
     return robot_cart_state_log_;
   }
 
-  std::map<size_t,ORL_joint_value> C5GOpenDriver::getRobotMotorCurrent( )
+  std::map<size_t,RobotMotorCurrentState> C5GOpenDriver::getRobotMotorCurrent( )
   {
     return robot_motor_current_log_;
   }
@@ -185,6 +186,7 @@ namespace c5gopen
     for (const size_t& arm : active_arms_)
     {
       robot_joint_state_link_.insert(std::make_pair(arm,joint_state_zero));
+      robot_joint_state_link_[arm].time_us = robot_joint_state_link_log_[arm].time_us;
       memcpy(robot_joint_state_link_[arm].target_pos, robot_joint_state_link_log_[arm].target_pos.value,  sizeof(robot_joint_state_link_log_[arm].target_pos.value)); 
       memcpy(robot_joint_state_link_[arm].real_pos,   robot_joint_state_link_log_[arm].real_pos.value,    sizeof(robot_joint_state_link_log_[arm].real_pos.value)); 
       memcpy(robot_joint_state_link_[arm].target_vel, robot_joint_state_link_log_[arm].target_vel.value,  sizeof(robot_joint_state_link_log_[arm].target_vel.value)); 
@@ -201,6 +203,7 @@ namespace c5gopen
     for (const size_t& arm : active_arms_)
     {
       robot_joint_state_motor_.insert(std::make_pair(arm,joint_state_zero));
+      robot_joint_state_motor_[arm].time_us = robot_joint_state_motor_log_[arm].time_us;
       memcpy(robot_joint_state_motor_[arm].target_pos, robot_joint_state_motor_log_[arm].target_pos.value,  sizeof(robot_joint_state_motor_log_[arm].target_pos.value)); 
       memcpy(robot_joint_state_motor_[arm].real_pos,   robot_joint_state_motor_log_[arm].real_pos.value,    sizeof(robot_joint_state_motor_log_[arm].real_pos.value)); 
       memcpy(robot_joint_state_motor_[arm].target_vel, robot_joint_state_motor_log_[arm].target_vel.value,  sizeof(robot_joint_state_motor_log_[arm].target_vel.value)); 
@@ -220,6 +223,8 @@ namespace c5gopen
       memcpy(robot_cart_state_[arm].config_flags_target, robot_cart_state_log_[arm].target_pos.config_flags, sizeof(robot_cart_state_log_[arm].target_pos.config_flags));
       memcpy(robot_cart_state_[arm].config_flags_real, robot_cart_state_log_[arm].real_pos.config_flags, sizeof(robot_cart_state_log_[arm].real_pos.config_flags));
       
+      robot_cart_state_[arm].time_us = robot_cart_state_log_[arm].time_us;
+
       robot_cart_state_[arm].target_pos[0] = robot_cart_state_log_[arm].target_pos.x;
       robot_cart_state_[arm].target_pos[1] = robot_cart_state_log_[arm].target_pos.y;
       robot_cart_state_[arm].target_pos[2] = robot_cart_state_log_[arm].target_pos.z;
@@ -244,8 +249,9 @@ namespace c5gopen
     std::map<size_t,RobotGenericArray> robot_motor_current_;
     for (const size_t& arm : active_arms_)
     {
+      robot_motor_current_[arm].time_us = robot_motor_current_log_[arm].time_us;
       robot_motor_current_.insert(std::make_pair(arm,gen_array_zero));
-      memcpy(robot_motor_current_[arm].value, robot_motor_current_log_[arm].value, sizeof(robot_motor_current_log_[arm].value));
+      memcpy(robot_motor_current_[arm].value, robot_motor_current_log_[arm].motor_currents.value, sizeof(robot_motor_current_log_[arm].motor_currents.value));
     }
 
     return robot_motor_current_;
@@ -260,10 +266,38 @@ namespace c5gopen
       return false;
     }       
 
-    if ( !absolute_target_jnt_position_[arm]->full() )
-      absolute_target_jnt_position_[arm]->push_back(joint_state);
+    double max_delta_jnt_pos_deg = MAX_JNT_VEL_DEG_S * get_c5gopen_period_in_usec(c5gopen_ctrl_idx_orl_) * pow(10,-6);
+
+    for ( size_t idx=0; idx<sizeof(joint_state.target_pos.value)/sizeof(double); idx++ )
+    {
+      if ( isnan(joint_state.target_pos.value[idx]) || isinf(joint_state.target_pos.value[idx]) ||
+           isnan(joint_state.target_vel.value[idx]) || isinf(joint_state.target_vel.value[idx]) )  
+      {
+        CNR_WARN(*logger_, "The trajectory received contains NaN or Inf values. Can't insert the last position/velocity received." );
+        return false;
+      }
+
+      RobotJointState last_buffer_target_pos = absolute_target_jnt_position_[arm]->at(absolute_target_jnt_position_[arm]->size());
+
+      double delta_jnt_position = std::fabs( joint_state.target_pos.value[idx] - last_buffer_target_pos.target_pos.value[idx] );
+
+      if ( delta_jnt_position > max_delta_jnt_pos_deg)
+      {
+        CNR_WARN( *logger_, "The difference between the last setpoint received and the previous one exceed from the maximum allowed value." );
+        return false;
+      }
+    } 
+      
+    if ( absolute_target_jnt_position_[arm]->full() )
+    {
+      CNR_WARN( *logger_, "The buffer is full, can't add the last received message." );
+      return false;    
+    }
     else
-      return false;
+      absolute_target_jnt_position_[arm]->push_back(joint_state);       
+
+    if ( !absolute_target_jnt_position_[arm]->empty() )
+      g_driver->robot_movement_enabled_[arm] = true;
 
     return true;
   }
@@ -452,7 +486,13 @@ namespace c5gopen
     CNR_INFO( *logger_, "Console theread closed." );
   }
 
-  bool C5GOpenDriver::initializeControlPosition ( void )
+  bool C5GOpenDriver::microinterpolate( )
+  {
+    // TO BE FINISHED
+    return true;
+  }
+
+  bool C5GOpenDriver::initializeControlPosition ( )
   {
     size_t modality;
     long output_jntmask;
@@ -534,6 +574,10 @@ namespace c5gopen
         // *************************************************************************************
         // Robot State joint position REAL    
         // *************************************************************************************
+        int64_t current_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+       
+        robot_joint_state_link_log_[active_arm].time_us = current_time;
+        robot_cart_state_log_[active_arm].time_us = current_time;
         if ( ORLOPEN_get_pos_measured(&robot_joint_state_link_log_[active_arm].real_pos,&robot_cart_state_log_[active_arm].real_pos, LAST_MESS, ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
           ORLOPEN_get_pos_measured(&robot_joint_state_link_log_[active_arm].real_pos,&robot_cart_state_log_[active_arm].real_pos, LAST_MESS, ORL_VERBOSE, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
@@ -541,6 +585,7 @@ namespace c5gopen
           return false;
         }
 
+        robot_joint_state_motor_log_[active_arm].time_us = current_time;       
         if ( ORLOPEN_get_pos_measured_mr(&robot_joint_state_motor_log_[active_arm].real_pos, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
           ORLOPEN_get_pos_measured_mr(&robot_joint_state_motor_log_[active_arm].real_pos, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
@@ -551,6 +596,7 @@ namespace c5gopen
         // *************************************************************************************
         // Robot State joint velocity REAL    
         // *************************************************************************************
+        robot_joint_state_motor_log_[active_arm].time_us = current_time;
         if ( ORLOPEN_get_speed_measured_mr_per_step(&robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
           ORLOPEN_get_speed_measured_mr_per_step(&robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
@@ -562,6 +608,7 @@ namespace c5gopen
         // *************************************************************************************
         // Robot State joint position TARGET    
         // *************************************************************************************
+        robot_joint_state_link_log_[active_arm].time_us = current_time;
         if ( ORLOPEN_get_pos_target( &robot_joint_state_link_log_[active_arm].target_pos,&robot_cart_state_log_[active_arm].target_pos, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
           ORLOPEN_get_pos_target( &robot_joint_state_link_log_[active_arm].target_pos,&robot_cart_state_log_[active_arm].target_pos, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
@@ -569,6 +616,7 @@ namespace c5gopen
           return false;
         }
         
+        robot_joint_state_motor_log_[active_arm].time_us = current_time;
         if ( ORLOPEN_get_pos_target_mr( &robot_joint_state_motor_log_[active_arm].target_pos, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
           ORLOPEN_get_pos_target_mr( &robot_joint_state_motor_log_[active_arm].target_pos, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
@@ -580,6 +628,7 @@ namespace c5gopen
         // *************************************************************************************
         // Robot State joint velocity TARGET    
         // *************************************************************************************
+        robot_joint_state_motor_log_[active_arm].time_us = current_time;
         if ( ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
           ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
@@ -591,9 +640,10 @@ namespace c5gopen
         // *************************************************************************************
         // Robot State joint current REAL    
         // *************************************************************************************
-        if ( ORLOPEN_get_current_measured (&robot_motor_current_log_[active_arm], &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
+        robot_motor_current_log_[active_arm].time_us = current_time;
+        if ( ORLOPEN_get_current_measured (&robot_motor_current_log_[active_arm].motor_currents, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
-          ORLOPEN_get_current_measured (&robot_motor_current_log_[active_arm], &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+          ORLOPEN_get_current_measured (&robot_motor_current_log_[active_arm].motor_currents, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
           CNR_ERROR( *logger_, "Error in ORLOPEN_get_current_measured.");
           return NULL;
         }
@@ -668,8 +718,6 @@ namespace c5gopen
                 CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_get_pos_measured.");
                 return ORLOPEN_ERROR;
               }
-              
-              g_driver->starting_jnt_position_[active_arm] = g_driver->actual_joints_position_[active_arm];
             }
             
             break;
@@ -687,10 +735,18 @@ namespace c5gopen
             
             if ( arm_driveon )
             {
+              if ( ORLOPEN_get_pos_measured(&g_driver->actual_joints_position_[active_arm],&g_driver->actual_cartesian_position_[active_arm], LAST_MESS, ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
+              {
+                ORLOPEN_get_pos_measured(&g_driver->actual_joints_position_[active_arm],&g_driver->actual_cartesian_position_[active_arm], LAST_MESS, ORL_VERBOSE, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+                CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_get_pos_measured.");
+                return ORLOPEN_ERROR;
+              }
+
               if ( g_driver->robot_movement_enabled_[active_arm] )
               {  
                 if ( !g_driver->absolute_target_jnt_position_[active_arm]->empty() )
                 {
+                  g_driver->microinterpolate();
                   g_driver->last_jnt_target_rcv_[active_arm] = g_driver->absolute_target_jnt_position_[active_arm]->front().target_pos;  
                   g_driver->absolute_target_jnt_position_[active_arm]->pop_front();
                   
@@ -698,22 +754,20 @@ namespace c5gopen
                     CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." );
                   
                   //ORL_axis_2_joints( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
-                  
                 }
                 else
                 {                
                   if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) != ORLOPEN_RES_OK )
                     CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." );
                   
+                  g_driver->robot_movement_enabled_[active_arm] = false;
+                  
                   //ORL_axis_2_joints( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
-                                                      
                 }
               }
               else
-              {
-                g_driver->starting_jnt_position_[active_arm].unit_type = ORL_POSITION_LINK_DEGREE;
-                
-                if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->starting_jnt_position_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) != ORLOPEN_RES_OK )
+              {                
+                if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->actual_joints_position_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) != ORLOPEN_RES_OK )
                   CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree.");
                 
                 //ORL_axis_2_joints( &g_driver->starting_jnt_position_[active_arm] , ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );                  

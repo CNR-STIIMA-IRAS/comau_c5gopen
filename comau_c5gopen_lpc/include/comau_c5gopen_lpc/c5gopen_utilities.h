@@ -38,6 +38,7 @@
 #ifndef C5GOPEN_UTILITIES_H
 #define C5GOPEN_UTILITIES_H
 
+#include <chrono>
 #include <eORL.h>
 
 #include <yaml-cpp/yaml.h>
@@ -46,6 +47,7 @@ namespace c5gopen
 {
   struct RobotJointState
   {
+    int64_t time_us;
     ORL_joint_value real_pos;
     ORL_joint_value real_vel;
     ORL_joint_value target_pos;
@@ -54,14 +56,22 @@ namespace c5gopen
 
   struct RobotCartState
   {
+    int64_t time_us;
     ORL_cartesian_position real_pos;
     ORL_cartesian_position target_pos;
   }__attribute__ ( ( packed ) ); 
 
 
+  struct RobotMotorCurrentState
+  {
+    int64_t time_us;
+    ORL_joint_value motor_currents;
+  }__attribute__ ( ( packed ) ); 
+
   struct RobotJointStateArray
   {
     // Joint position must be in [deg] and velocities in [deg/s]
+    int64_t time_us;
     double real_pos[ORL_MAX_AXIS] = {0};
     double real_vel[ORL_MAX_AXIS] = {0};
     double target_pos[ORL_MAX_AXIS] = {0};
@@ -71,6 +81,7 @@ namespace c5gopen
   struct RobotCartStateArray
   {
     // Cartesian position must be in [mm] and angles in [deg]
+    int64_t time_us;
     double real_pos[6] = {0};
     char config_flags_real[80] = {0};
     double target_pos[6] = {0};
@@ -79,6 +90,7 @@ namespace c5gopen
 
   struct RobotGenericArray
   {
+    int64_t time_us;
     double value[ORL_MAX_AXIS] = {0};
   }__attribute__ ( ( packed ) );
 
@@ -109,6 +121,7 @@ namespace c5gopen
     std::string mqtt_broker_address_;
     size_t mqtt_port_;
     std::vector<std::string> mqtt_sub_topics_;
+    size_t mqtt_timeout_;
   };
   struct C5GOpenNodeCfg 
   {

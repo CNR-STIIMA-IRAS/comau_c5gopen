@@ -13,9 +13,9 @@ robot_frames:
 mqtt:
   client_id: "Client_ID"
   broker_address: "192.168.254.246"
-  #broker_address: 10.2.13.32
   port: 1883
   sub_topics: ["robot/arm1/target_joints_trajectory"] # ["topic1", "topic2"]
+  timeout: 1 #ms
 
 cnr_logger:
   logger_cfg_file: /home/c5gopen/comau_devel_ws/src/comau_c5gopen/comau_c5gopen_lpc/cfg/log_cfg.yaml

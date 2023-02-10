@@ -62,7 +62,7 @@ namespace c5gopen
 
     bool publishData( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver );
     bool subscribeTopic( const std::string& sub_topic_name );
-    bool updateRobotTargetTrajectory( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver );
+    bool updateRobotTargetTrajectory( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver, const size_t& loop_timeout );
     
   }; 
 

@@ -72,6 +72,14 @@ public:
       return cb_.front();
     }
 
+    const T& back() 
+    {
+      lock lk(monitor_);
+      while (cb_.empty())
+          buffer_not_empty_.wait(lk);
+      return cb_.back();
+    }
+
     void pop_front() 
     {
       lock lk(monitor_);
@@ -82,37 +90,42 @@ public:
 
     void clear() 
     {
-        lock lk(monitor_);
-        cb_.clear();
+      lock lk(monitor_);
+      cb_.clear();
     }
 
     int size() 
     {
-        lock lk(monitor_);
-        return cb_.size();
+      lock lk(monitor_);
+      return cb_.size();
     }
 
     void set_capacity(int capacity) 
     {
-        lock lk(monitor_);
-        cb_.set_capacity(capacity);
+      lock lk(monitor_);
+      cb_.set_capacity(capacity);
     }
 
     bool empty() 
     {
-        lock lk(monitor_);
-        return cb_.empty();
+      lock lk(monitor_);
+      return cb_.empty();
     }
 
     bool full() 
     {
-        lock lk(monitor_);
-        return cb_.full();
+      lock lk(monitor_);
+      return cb_.full();
     }
 
     boost::circular_buffer<T>& get() 
     {
       return cb_;
+    }
+
+    const T& at(const size_t& idx) 
+    {
+      return cb_.at(idx);
     }
 
 private:
