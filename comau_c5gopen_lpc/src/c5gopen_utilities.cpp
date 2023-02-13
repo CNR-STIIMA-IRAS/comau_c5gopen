@@ -227,7 +227,7 @@ namespace c5gopen
       return arm_idx-1;
     else
     {
-      std::cout << cnr_logger::RED() << "Error: arm index: values allowed are from 1 to 32, provided" << arm_idx << cnr_logger::RESET() << std::endl;
+      std::cout << cnr_logger::RED() << "Error: arm index: values allowed are from 1 to 32, provided: " << arm_idx << cnr_logger::RESET() << std::endl;
       return 1000;
     }
   }

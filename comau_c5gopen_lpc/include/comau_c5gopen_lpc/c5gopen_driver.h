@@ -57,6 +57,7 @@
 #define LAST_MESS 0
 #define TARGET_POS_MAX_BUFF_LEN 100
 #define MAX_JNT_VEL_DEG_S 150 // [deg/s] to be acquired from robot controller
+#define SIZE_OF_DOUBLE 8
 
 namespace c5gopen
 {   

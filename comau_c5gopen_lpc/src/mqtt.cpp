@@ -108,11 +108,7 @@ namespace cnr
     /* Run the network loop in a background thread, this call returns quickly. */
     rc = mosquitto_loop(mosq_,timeout);
     if(rc != MOSQ_ERR_SUCCESS)
-    {
-      mosquitto_destroy(mosq_);
-      CNR_ERROR(logger_, "Error: " << strerror_r(rc, errbuffer_, 1024) );
-      return -1;
-    }
+      CNR_ERROR(logger_, "Error in mosquitto_loop: " << strerror_r(rc, errbuffer_,1024) );
 
     /* At this point the client is connected to the network socket, but may not
     * have completed CONNECT/CONNACK.

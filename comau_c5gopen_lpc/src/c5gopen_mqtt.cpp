@@ -86,8 +86,8 @@ namespace c5gopen
         memset( payload_, 0, MAX_PAYLOAD_SIZE );
         snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
-          snprintf ( (char*)payload_ + payload_len_t + sizeof(double) * idx, MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
+        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx, MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
 
         topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_positions";
         if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
@@ -99,8 +99,8 @@ namespace c5gopen
         memset( payload_, 0, MAX_PAYLOAD_SIZE );
         snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
-          snprintf ( (char*)payload_ + payload_len_t + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_vel[idx] );
+        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_vel[idx] );
 
         topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_velocities";
         if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
@@ -112,8 +112,8 @@ namespace c5gopen
         memset( payload_, 0, MAX_PAYLOAD_SIZE );
         snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
         
-        for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
-          snprintf ( (char*)payload_ + payload_len_t + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
+        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
         
         topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_positions";
         if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
@@ -125,8 +125,8 @@ namespace c5gopen
         memset( payload_, 0, MAX_PAYLOAD_SIZE );
         snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
-          snprintf ( (char*)payload_ + payload_len_t + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_vel[idx] );
+        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_vel[idx] );
         
         topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_velocities";
         if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
@@ -149,8 +149,8 @@ namespace c5gopen
         memset( payload_, 0, MAX_PAYLOAD_SIZE );
         snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
-          snprintf ( (char*)payload_ + payload_len_t + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
+        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
 
         memcpy((char*)(payload_ + payload_len_t + sizeof(it->second.real_pos)), it->second.config_flags_real, sizeof(it->second.config_flags_real) );  
 
@@ -167,8 +167,8 @@ namespace c5gopen
         memset( payload_, 0, MAX_PAYLOAD_SIZE );
         snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/sizeof(double); idx++)
-          snprintf ( (char*)payload_ + payload_len_t + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
+        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
 
         memcpy((char*)(payload_ + payload_len_t + sizeof(it->second.target_pos)), it->second.config_flags_target, sizeof(it->second.config_flags_target) );
 
@@ -190,8 +190,8 @@ namespace c5gopen
         memset( payload_, 0, MAX_PAYLOAD_SIZE );
         snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_/sizeof(double); idx++)
-          snprintf ( (char*)payload_ + payload_len_t + sizeof(double) * idx , MAX_PAYLOAD_SIZE, "%f", it->second.value[idx] );
+        for (size_t idx=0; idx<payload_len_/SIZE_OF_DOUBLE; idx++)
+          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.value[idx] );
 
         topic_name_ = "robot/arm" + std::string(arm) + "/motor_currents";
         if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
@@ -279,7 +279,7 @@ namespace c5gopen
         std::pair<int, cnr::MQTTPayload> msg_complete = it->second;
         
         // Expected payload 8bytes every joints -> maximum joint expected is 10
-        if( std::get<0>(msg_complete)%sizeof(double) != 0 || std::get<0>(msg_complete)/sizeof(double) > ORL_MAX_AXIS )
+        if( std::get<0>(msg_complete)%SIZE_OF_DOUBLE != 0 || std::get<0>(msg_complete)/SIZE_OF_DOUBLE > ORL_MAX_AXIS )
         {
           CNR_ERROR(logger_, "Invalid number of bytes for the subscribed topic: " << it->first 
                             << ". Received: " << std::get<0>(msg_complete) << " bytes.");  
@@ -289,24 +289,13 @@ namespace c5gopen
         char c[8] = {0};
         c5gopen::RobotJointState target_joint_position;
         
-        for(size_t idx=0; idx<std::get<0>(msg_complete)/sizeof(double); idx++)
+        for(size_t idx=0; idx<std::get<0>(msg_complete)/SIZE_OF_DOUBLE; idx++)
         {
-          memcpy(c, std::get<1>(msg_complete).payload + idx * sizeof(double), sizeof(double));
+          memcpy(c, std::get<1>(msg_complete).payload + idx * SIZE_OF_DOUBLE, SIZE_OF_DOUBLE);
           target_joint_position.target_pos.value[idx] = atof(c);
-          memset(c,0x0,sizeof(double));
+          memset(c,0x0,SIZE_OF_DOUBLE);
         } 
 
-        CNR_DEBUG(logger_, "Recevived: " << target_joint_position.target_pos.value[0] << "  "
-                                          << target_joint_position.target_pos.value[1] << "  "
-                                          << target_joint_position.target_pos.value[2] << "  "
-                                          << target_joint_position.target_pos.value[3] << "  "
-                                          << target_joint_position.target_pos.value[4] << "  "
-                                          << target_joint_position.target_pos.value[5] << "  "
-                                          << target_joint_position.target_pos.value[6] << "  "
-                                          << target_joint_position.target_pos.value[7] << "  "
-                                          << target_joint_position.target_pos.value[8] << "  "
-                                          << target_joint_position.target_pos.value[9] << "  ");
-        
         c5gopen_driver->setRobotJointAbsoluteTargetPosition(arm, target_joint_position); 
       }
       

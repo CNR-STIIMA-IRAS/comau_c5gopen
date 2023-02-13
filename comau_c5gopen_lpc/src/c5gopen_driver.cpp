@@ -259,16 +259,18 @@ namespace c5gopen
 
   bool C5GOpenDriver::setRobotJointAbsoluteTargetPosition( const size_t& arm, const RobotJointState& joint_state )
   {
+    // arm starts from 1 to 32
+
     if (std::find(active_arms_.begin(), active_arms_.end(), arm) == active_arms_.end() )
     {
-      CNR_WARN(*logger_, "The joint target position setpoint is defined for arm: " << arm 
+      CNR_WARN(*logger_, "The joint target position setpoint is defined for arm: " << arm+1
                           << " but the arm is not activated, the desired trajectory will not by applied. Please activate the arm.");
       return false;
     }       
 
     double max_delta_jnt_pos_deg = MAX_JNT_VEL_DEG_S * get_c5gopen_period_in_usec(c5gopen_ctrl_idx_orl_) * pow(10,-6);
 
-    for ( size_t idx=0; idx<sizeof(joint_state.target_pos.value)/sizeof(double); idx++ )
+    for ( size_t idx=0; idx<sizeof(joint_state.target_pos.value)/SIZE_OF_DOUBLE; idx++ )
     {
       if ( isnan(joint_state.target_pos.value[idx]) || isinf(joint_state.target_pos.value[idx]) ||
            isnan(joint_state.target_vel.value[idx]) || isinf(joint_state.target_vel.value[idx]) )  
@@ -277,13 +279,22 @@ namespace c5gopen
         return false;
       }
 
-      RobotJointState last_buffer_target_pos = absolute_target_jnt_position_[arm]->at(absolute_target_jnt_position_[arm]->size());
-
-      double delta_jnt_position = std::fabs( joint_state.target_pos.value[idx] - last_buffer_target_pos.target_pos.value[idx] );
+      double delta_jnt_position = 0.0;
+      if (!absolute_target_jnt_position_[arm]->empty())
+      {
+        RobotJointState last_buffer_target_pos = absolute_target_jnt_position_[arm]->at(absolute_target_jnt_position_[arm]->size()-1);
+        delta_jnt_position = std::fabs( joint_state.target_pos.value[idx] - last_buffer_target_pos.target_pos.value[idx] );
+      }
+      else
+      {
+        //only the first time, if the absolute_target_jnt_position_[arm] is empty 
+        //the actual joints position is used to compute the delta_jnt_position
+        delta_jnt_position = std::fabs( joint_state.target_pos.value[idx] - actual_joints_position_[arm].value[idx]);
+      }
 
       if ( delta_jnt_position > max_delta_jnt_pos_deg)
       {
-        CNR_WARN( *logger_, "The difference between the last setpoint received and the previous one exceed from the maximum allowed value." );
+        CNR_WARN( *logger_, "Arm " << arm << " Joint: " << idx << " delta joint position = "<< delta_jnt_position <<  " > max delta joint position = " <<  max_delta_jnt_pos_deg << ".   The difference between the last setpoint received and the previous one exceed from the maximum allowed value." );
         return false;
       }
     } 
@@ -294,12 +305,19 @@ namespace c5gopen
       return false;    
     }
     else
+    {
       absolute_target_jnt_position_[arm]->push_back(joint_state);       
+      CNR_WARN( *logger_, absolute_target_jnt_position_[arm]->size() << " points in the buffer." );
+    }
+
 
     if ( !absolute_target_jnt_position_[arm]->empty() && !g_driver->robot_movement_enabled_[arm])
     {
-      g_driver->robot_movement_enabled_[arm] = true;
-      CNR_DEBUG( *logger_, "Recevived first trajectory point. Robot movements enabled." );
+      // if (absolute_target_jnt_position_[arm]->size() > 10)
+      // {
+        g_driver->robot_movement_enabled_[arm] = true;
+        CNR_DEBUG( *logger_, "Recevived 10 trajectory points. Robot movements enabled." );
+      // }
     }
       
     return true;
@@ -338,7 +356,7 @@ namespace c5gopen
       return;
     }
     else
-      CNR_INFO( *logger_, "C5Gopen set period (cycle working frequency). " );
+      CNR_INFO( *logger_, "C5Gopen set period (cycle working frequency): " << c5gopen_period_orl_ );
 
     for ( const size_t& active_arm : active_arms_)
     {
@@ -731,7 +749,7 @@ namespace c5gopen
             {
               if ( (flag_new_modality[active_arm]) && (g_driver->modality_active_[active_arm] == CRCOPEN_POS_ABSOLUTE) )
               {
-                CNR_INFO(  g_driver->logger_, "Modality CRCOPEN_POS_ABSOLUTE activated." );
+                CNR_INFO(  g_driver->logger_, "Modality CRCOPEN_POS_ABSOLUTE activated. ARM: " << active_arm << " --> " << ( (arm_driveon == true) ? "DRIVEON" : "DRIVEOFF") );
                 g_driver->robot_movement_enabled_[active_arm] = false;
               }
             }
@@ -749,6 +767,7 @@ namespace c5gopen
               {  
                 if ( !g_driver->absolute_target_jnt_position_[active_arm]->empty() )
                 {
+                  CNR_DEBUG(  g_driver->logger_, "Setting new absolute position" );
                   g_driver->microinterpolate();
                   g_driver->last_jnt_target_rcv_[active_arm] = g_driver->absolute_target_jnt_position_[active_arm]->front().target_pos;  
                   g_driver->absolute_target_jnt_position_[active_arm]->pop_front();
@@ -798,10 +817,11 @@ namespace c5gopen
         
         }
       }
-      
-      if ( g_driver->flag_ExitFromOpen_[active_arm] )
+      else
+      {
         ORLOPEN_ExitFromOpen( ORL_VERBOSE, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
-      
+        CNR_WARN( g_driver->logger_, "Called function ORLOPEN_ExitFromOpen...");
+      }
     }
     
     return ORLOPEN_RES_OK;
