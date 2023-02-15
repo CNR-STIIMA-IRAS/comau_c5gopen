@@ -1,0 +1,38 @@
+PROGRAM ru_singlesimulate &PA, NOHOLD
+  
+IMPORT 'root'
+  
+VAR vi_arm, vi_axl : INTEGER
+VAR vi_value : INTEGER
+VAR vb_simulate : BOOLEAN
+  
+BEGIN
+  
+  -- setting location
+  vi_arm := 1
+  vi_axl := 3
+  
+  -- setting value
+  vb_simulate := FALSE   -- axis NOT simulated
+  -- vb_simulate := TRUE   -- axis simulated
+  
+  -- pre-read
+  DELAY 200
+  WRITE LUN_CRT ('Pre-value: ', ru_pull_ACPSimulationState(vi_arm, vi_axl), NL)
+  WRITE LUN_TP ('Pre-value: ', ru_pull_ACPSimulationState(vi_arm, vi_axl), NL)
+  
+  -- set
+  DELAY 200
+  ru_set_ACPSimulationState(vi_arm, vi_axl, vb_simulate, vi_root_rFlag)
+  
+  -- post-read
+  DELAY 200
+  WRITE LUN_CRT ('Pre-value: ', ru_pull_ACPSimulationState(vi_arm, vi_axl), NL)
+  WRITE LUN_TP ('Pre-value: ', ru_pull_ACPSimulationState(vi_arm, vi_axl), NL)
+  
+  -- library to manage simulation
+  WRITE LUN_CRT ('Waiting for library call', NL)
+  WRITE LUN_TP ('Waiting for library call', NL)
+  SYS_CALL('PG', 'UD:\\SYS\\UTIL\\EPL_GEN')
+  
+END ru_singlesimulate

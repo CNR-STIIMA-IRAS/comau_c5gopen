@@ -42,8 +42,12 @@
 #include <mutex>
 #include <mosquitto.h>
 
+#include <jsoncpp/json/json.h>
+
 #include <boost/circular_buffer.hpp>
 #include <cnr_logger/cnr_logger.h>
+
+#include <comau_c5gopen_lpc/c5gopen_utilities.h>
 
 #define MAX_PAYLOAD_SIZE 1024
 #define DEFAULT_KEEP_ALIVE 60
@@ -52,10 +56,12 @@
 
 namespace cnr
 {
-  struct MQTTPayload
-  { 
-    char payload[MAX_PAYLOAD_SIZE] = {0};  
-  };
+  // struct MQTTPayload
+  // { 
+  //   char payload[MAX_PAYLOAD_SIZE] = {0};  
+  // };
+
+
   class MQTTClient 
   {
   protected:  
@@ -77,7 +83,8 @@ namespace cnr
     int reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff);
     int subscribe(uint16_t *mid, const char *sub, int qos=0);
     int publish(const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name);
-    std::map<std::string,std::pair<int,struct cnr::MQTTPayload>> getLastReceivedMessage( );
+    //std::map<std::string,std::pair<int,struct cnr::MQTTPayload>> getLastReceivedMessage( );
+    std::map<std::string,c5gopen::RobotJointState> getLastReceivedMessage( );
 
     typedef void (MQTTClient::*on_connect_callback)  (void *obj, int reason_code);
     typedef void (MQTTClient::*on_message_callback)  (void *obj, const struct mosquitto_message *msg);

@@ -55,7 +55,7 @@
 #include <comau_c5gopen_lpc/realtime_buffer_utils.h>
 
 #define LAST_MESS 0
-#define TARGET_POS_MAX_BUFF_LEN 100
+#define TARGET_POS_MAX_BUFF_LEN 10000
 #define MAX_JNT_VEL_DEG_S 150 // [deg/s] to be acquired from robot controller
 #define SIZE_OF_DOUBLE 8
 
@@ -113,7 +113,9 @@ namespace c5gopen
     ORL_cartesian_position tool_frame_;
 
     // C5GOpen thread managment
-    std::mutex mtx_;
+    std::mutex mtx_log_;
+    std::mutex mtx_trj_;
+    std::mutex mtx_open_;
 
     std::thread c5gopen_thread_; 
     std::thread logging_thread_; 

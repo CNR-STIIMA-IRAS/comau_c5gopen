@@ -51,7 +51,8 @@ namespace cnr
   boost::circular_buffer<int64_t> delta_time_(LOG_SAMPLES);
 
   std::mutex mtx_mqtt_;  
-  std::map<std::string,std::pair<int,MQTTPayload>> last_received_msg_;
+  //std::map<std::string,std::pair<int,MQTTPayload>> last_received_msg_;
+  std::map<std::string,c5gopen::RobotJointState> last_received_msg_;
 
   MQTTClient::MQTTClient( const char *id, const char *host, 
                           int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger ):
@@ -161,7 +162,12 @@ namespace cnr
     return rc;
   }
 
-  std::map<std::string,std::pair<int,MQTTPayload>> MQTTClient::getLastReceivedMessage()
+  // std::map<std::string,std::pair<int,MQTTPayload>> MQTTClient::getLastReceivedMessage()
+  // {
+  //   return last_received_msg_;
+  // }
+
+  std::map<std::string,c5gopen::RobotJointState> MQTTClient::getLastReceivedMessage()
   {
     return last_received_msg_;
   }
@@ -253,9 +259,38 @@ namespace cnr
     mtx_mqtt_.lock();    
     if (msg->payloadlen < MAX_PAYLOAD_SIZE)
     {
-      MQTTPayload payload_;
-      memcpy(payload_.payload,msg->payload,msg->payloadlen);
-      last_received_msg_[std::string(msg->topic)] = std::pair<int,MQTTPayload>(msg->payloadlen,payload_);
+      // MQTTPayload payload_;
+      // memcpy(payload_.payload,msg->payload,msg->payloadlen);
+      // last_received_msg_[std::string(msg->topic)] = std::pair<int,MQTTPayload>(msg->payloadlen,payload_);
+
+      char* buffer = new char[msg->payloadlen];
+      memcpy(buffer, msg->payload, msg->payloadlen);
+
+      std::string buffer_str(buffer);
+    
+      Json::Reader reader;
+      Json::Value root;
+    
+      reader.parse(buffer_str,root);
+      
+      c5gopen::RobotJointState joint_positions;
+      
+      joint_positions.target_pos.value[0] = root["J1"].asDouble();
+      joint_positions.target_pos.value[1] = root["J2"].asDouble();
+      joint_positions.target_pos.value[2] = root["J3"].asDouble();
+      joint_positions.target_pos.value[3] = root["J4"].asDouble();
+      joint_positions.target_pos.value[4] = root["J5"].asDouble();
+      joint_positions.target_pos.value[5] = root["J6"].asDouble();
+      joint_positions.target_pos.value[6] = root["J7"].asDouble();
+      joint_positions.target_pos.value[7] = root["J8"].asDouble();
+      joint_positions.target_pos.value[8] = root["J9"].asDouble();
+      joint_positions.target_pos.value[9] = root["J10"].asDouble();
+
+      // The absolute trajectory need to be in degree
+      joint_positions.target_pos.unit_type = ORL_POSITION_LINK_DEGREE;
+
+      last_received_msg_[std::string(msg->topic)] = joint_positions;
+    
     }
     mtx_mqtt_.unlock();
   }

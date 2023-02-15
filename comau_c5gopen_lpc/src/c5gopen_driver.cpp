@@ -270,33 +270,47 @@ namespace c5gopen
 
     double max_delta_jnt_pos_deg = MAX_JNT_VEL_DEG_S * get_c5gopen_period_in_usec(c5gopen_ctrl_idx_orl_) * pow(10,-6);
 
+    ORL_joint_value last_jnt_pos;
+
+    if (!absolute_target_jnt_position_[arm]->empty())
+    {
+      last_jnt_pos = absolute_target_jnt_position_[arm]->back().target_pos;
+    }
+    else
+    {
+      if (g_driver->robot_movement_enabled_[arm] )
+      {
+        // Robot movement was already enabled so the delta is computed w.r.t 
+        // the last point provided to the controller
+        last_jnt_pos = last_jnt_target_rcv_[arm];      
+      }
+      else
+      {
+        //Robot movement was not yet enabled 
+        //the actual joints position is used to compute the delta_jnt_position
+        last_jnt_pos = actual_joints_position_[arm];
+      }
+    }
+
+
     for ( size_t idx=0; idx<sizeof(joint_state.target_pos.value)/SIZE_OF_DOUBLE; idx++ )
     {
-      if ( isnan(joint_state.target_pos.value[idx]) || isinf(joint_state.target_pos.value[idx]) ||
-           isnan(joint_state.target_vel.value[idx]) || isinf(joint_state.target_vel.value[idx]) )  
+      if ( std::isnan(joint_state.target_pos.value[idx]) || std::isinf(joint_state.target_pos.value[idx]) ||
+           std::isnan(joint_state.target_vel.value[idx]) || std::isinf(joint_state.target_vel.value[idx]) )  
       {
         CNR_WARN(*logger_, "The trajectory received contains NaN or Inf values. Can't insert the last position/velocity received." );
         return false;
       }
 
-      double delta_jnt_position = 0.0;
-      if (!absolute_target_jnt_position_[arm]->empty())
-      {
-        RobotJointState last_buffer_target_pos = absolute_target_jnt_position_[arm]->at(absolute_target_jnt_position_[arm]->size()-1);
-        delta_jnt_position = std::fabs( joint_state.target_pos.value[idx] - last_buffer_target_pos.target_pos.value[idx] );
-      }
-      else
-      {
-        //only the first time, if the absolute_target_jnt_position_[arm] is empty 
-        //the actual joints position is used to compute the delta_jnt_position
-        delta_jnt_position = std::fabs( joint_state.target_pos.value[idx] - actual_joints_position_[arm].value[idx]);
-      }
+      double delta_jnt_position = std::fabs( joint_state.target_pos.value[idx] - last_jnt_pos.value[idx] );
 
       if ( delta_jnt_position > max_delta_jnt_pos_deg)
       {
-        CNR_WARN( *logger_, "Arm " << arm << " Joint: " << idx << " delta joint position = "<< delta_jnt_position <<  " > max delta joint position = " <<  max_delta_jnt_pos_deg << ".   The difference between the last setpoint received and the previous one exceed from the maximum allowed value." );
+        CNR_WARN( *logger_, "Arm " << arm << " Joint: " << idx+1 << " delta joint position = "<< delta_jnt_position <<  " > max delta joint position = " <<  max_delta_jnt_pos_deg << ".   The difference between the last setpoint received and the previous one exceed from the maximum allowed value." );
+        CNR_WARN( *logger_, "Arm " << arm << " Joint: " << idx+1 << " received from MQTT: " << joint_state.target_pos.value[idx] << "  last known joint position: " << last_jnt_pos.value[idx] );
         return false;
       }
+
     } 
       
     if ( absolute_target_jnt_position_[arm]->full() )
@@ -306,18 +320,19 @@ namespace c5gopen
     }
     else
     {
+      mtx_trj_.lock();
       absolute_target_jnt_position_[arm]->push_back(joint_state);       
-      CNR_WARN( *logger_, absolute_target_jnt_position_[arm]->size() << " points in the buffer." );
+      mtx_trj_.unlock();
     }
 
 
     if ( !absolute_target_jnt_position_[arm]->empty() && !g_driver->robot_movement_enabled_[arm])
     {
-      // if (absolute_target_jnt_position_[arm]->size() > 10)
-      // {
+      if (absolute_target_jnt_position_[arm]->size() > 100)
+      {
         g_driver->robot_movement_enabled_[arm] = true;
-        CNR_DEBUG( *logger_, "Recevived 10 trajectory points. Robot movements enabled." );
-      // }
+        CNR_DEBUG( *logger_, "Recevived " << absolute_target_jnt_position_[arm]->size() << " trajectory points. Robot movements enabled." );
+      }
     }
       
     return true;
@@ -557,6 +572,7 @@ namespace c5gopen
                             << actual_joints_position_[active_arm].value[ORL_AX7] << " "
                             << actual_joints_position_[active_arm].value[ORL_AX8] << " "
                             << actual_joints_position_[active_arm].value[ORL_AX9] << " "
+                            << actual_joints_position_[active_arm].value[ORL_AX10] << " Unit type: "
                             << (int16_t)actual_joints_position_[active_arm].unit_type );
         
         CNR_INFO( *logger_, " Pose " 
@@ -566,7 +582,8 @@ namespace c5gopen
                             << actual_cartesian_position_[active_arm].a << " "
                             << actual_cartesian_position_[active_arm].e << " "
                             << actual_cartesian_position_[active_arm].r << " "
-                            << actual_cartesian_position_[active_arm].config_flags);
+                            << actual_cartesian_position_[active_arm].config_flags << " Unit type: "
+                            << actual_cartesian_position_[active_arm].unit_type );
         
         sprintf((char *)orl_sys_var.sysvar_name,"$ARM_DATA[%d].ARM_OVR",active_arm);
         
@@ -591,7 +608,7 @@ namespace c5gopen
         
       if ( system_initialized_ && first_arm_driveon_[active_arm] )
       {
-        mtx_.lock();
+        mtx_log_.lock();
         // *************************************************************************************
         // Robot State joint position REAL    
         // *************************************************************************************
@@ -652,7 +669,7 @@ namespace c5gopen
         robot_joint_state_motor_log_[active_arm].time_us = current_time;
         if ( ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
-          ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+          ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
           CNR_ERROR( *logger_, "Error in ORLOPEN_get_speed_target_mr_per_step.");
           return NULL;
         }
@@ -668,7 +685,7 @@ namespace c5gopen
           CNR_ERROR( *logger_, "Error in ORLOPEN_get_current_measured.");
           return NULL;
         }
-        mtx_.unlock();
+        mtx_log_.unlock();
       }
     }
 
@@ -677,12 +694,12 @@ namespace c5gopen
 
   void C5GOpenDriver::setExitFromOpen( const size_t& arm )
   {
-    mtx_.lock();
+    mtx_open_.lock();
     flag_ExitFromOpen_[arm]         = true;
     trajectory_in_execution_[arm]   = false; 
-    mtx_.unlock();
+    mtx_open_.unlock();
   }
-
+  
   int c5gopenCallback ( int input ) 
   { 
     bool arm_driveon;
@@ -767,32 +784,37 @@ namespace c5gopen
               {  
                 if ( !g_driver->absolute_target_jnt_position_[active_arm]->empty() )
                 {
-                  CNR_DEBUG(  g_driver->logger_, "Setting new absolute position" );
+                  //CNR_DEBUG(  g_driver->logger_, "Set Trajectory Position from Buffer" );
                   g_driver->microinterpolate();
+                  
+                  g_driver->mtx_trj_.lock();
                   g_driver->last_jnt_target_rcv_[active_arm] = g_driver->absolute_target_jnt_position_[active_arm]->front().target_pos;  
                   g_driver->absolute_target_jnt_position_[active_arm]->pop_front();
+                  g_driver->mtx_trj_.unlock();
+
+                  int res = ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+                  if ( res != ORLOPEN_RES_OK )
+                    CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." << ORL_decode_Error_Code(res) );
                   
-                  if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) != ORLOPEN_RES_OK )
-                    CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." );
-                  
-                  //ORL_axis_2_joints( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
                 }
                 else
-                {                
-                  if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) != ORLOPEN_RES_OK )
-                    CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." );
+                { 
+                  //CNR_DEBUG(  g_driver->logger_, "Set Last Valid Position" );
+                  int res = ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );               
+                  if ( res != ORLOPEN_RES_OK )
+                    CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." << ORL_decode_Error_Code(res) );
                   
-                  g_driver->robot_movement_enabled_[active_arm] = false;
+                  //g_driver->robot_movement_enabled_[active_arm] = false;
                   
-                  //ORL_axis_2_joints( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
                 }
               }
               else
-              {                
-                if ( ORLOPEN_set_absolute_pos_target_degree( &g_driver->actual_joints_position_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) != ORLOPEN_RES_OK )
-                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree.");
+              {  
+                //CNR_DEBUG(  g_driver->logger_, "Set Actual Position" );
+                int res = ORLOPEN_set_absolute_pos_target_degree( &g_driver->actual_joints_position_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+                if ( res != ORLOPEN_RES_OK )
+                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." << ORL_decode_Error_Code(res) );
                 
-                //ORL_axis_2_joints( &g_driver->starting_jnt_position_[active_arm] , ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );                  
               }
             }
             

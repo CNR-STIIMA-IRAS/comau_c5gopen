@@ -1,0 +1,56 @@
+PROGRAM crcopen_cycle &PA
+IMPORT 'crcopen_lib'
+VAR vi_modality, vi_arm_idx, vi_timeout : INTEGER
+VAR vi_res : INTEGER
+VAR vs_modality : STRING[32]
+VAR vi_sette : INTEGER
+BEGIN
+  
+  vi_timeout := 0
+  vi_modality := CRCOPEN_LISTEN
+  
+  vi_arm_idx := 1
+  
+  -- Enable Open Visual3D during simulation
+  BIT_SET($GLOOP_ALONG_1D[20], 7)
+  $ARM_OVR := 45
+CYCLE
+  
+  --alterno le modalit…
+  SELECT vi_modality OF
+    CASE (CRCOPEN_LISTEN):   --0
+      vi_modality := CRCOPEN_POS_ABSOLUTE
+    CASE (CRCOPEN_POS_ABSOLUTE):   --4
+      vi_modality := CRCOPEN_POS_RELATIVE
+    CASE (CRCOPEN_POS_RELATIVE):   --5
+      vi_modality := CRCOPEN_POS_ADDITIVE
+    CASE (CRCOPEN_POS_ADDITIVE):   --7
+      vi_modality := CRCOPEN_POS_ABSOLUTE
+    ELSE:
+      vi_modality := CRCOPEN_LISTEN
+  ENDSELECT
+  
+  --vi_modality := CRCOPEN_POS_ABSOLUTE
+  
+  vi_arm_idx := 1
+  MOVE ARM[vi_arm_idx] TO {0, 20, -90, 0, 60, 0}
+  DELAY 1000
+  vi_res := ru_crcopen_set_modality(vi_arm_idx, 0x3F, vi_modality)
+  IF vi_res = 0 THEN
+    WRITE LUN_CRT (' Arm ', vi_arm_idx, ' modality ', vi_modality, NL)
+    DELAY 1000
+    IF vi_modality = CRCOPEN_POS_ADDITIVE THEN
+      MOVE ARM[vi_arm_idx] TO {10, 20, -80, 10, 20, 30}
+      MOVE ARM[vi_arm_idx] TO {10, 20, -100, 10, 20, 30}
+      MOVE ARM[vi_arm_idx] TO {10, 20, -90, 10, 20, 30}
+    ENDIF
+    ru_crcopen_wait_exit(vi_arm_idx, vi_timeout, TRUE)
+    DELAY 1000
+  ELSE
+    WRITE LUN_CRT (' END ', vi_res, NL)
+    RETURN
+  ENDIF
+  
+  DELAY 3000
+  
+END crcopen_cycle

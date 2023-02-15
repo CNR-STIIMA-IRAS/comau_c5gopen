@@ -2,7 +2,7 @@ c5gopen_ctrl:
   ctrl_idx: 1 # allowed values: from 1 to 32  
   ip_ctrl: 192.168.254.240 
   sys_id: CNTRLC5G_2107987
-  period: 2.0 #[ms] allowed values are: 0.4 - 2.0 - 4.0 - 8.0 - 16.0 ]
+  period: 0.4 #[ms] allowed values are: 0.4 - 2.0 - 4.0 - 8.0 - 16.0 ]
   active_arms: [1]  # [1, 2, 3, 4]
 
 robot_frames:
@@ -15,7 +15,7 @@ mqtt:
   broker_address: "192.168.254.246"
   port: 1883
   sub_topics: ["robot/arm1/target_joints_trajectory"] # ["topic1", "topic2"]
-  timeout: 2 #ms
+  timeout: 1 #ms
 
 cnr_logger:
   logger_cfg_file: /home/c5gopen/comau_devel_ws/src/comau_c5gopen/comau_c5gopen_lpc/cfg/log_cfg.yaml

@@ -230,6 +230,9 @@ namespace c5gopen
     else
       CNR_WARN( logger_, "C5GOpen not initialized yet, can't publish C5GOpen data.");
 
+
+    CNR_DEBUG(logger_,"publishData");
+
     return true;
   }
 
@@ -259,7 +262,8 @@ namespace c5gopen
       if (loop(loop_timeout) != MOSQ_ERR_SUCCESS)
         return false;
       
-      std::map<std::string,std::pair<int, cnr::MQTTPayload>> last_messages = getLastReceivedMessage( );
+      //std::map<std::string,std::pair<int, cnr::MQTTPayload>> last_messages = getLastReceivedMessage( );
+      std::map<std::string,c5gopen::RobotJointState> last_messages = getLastReceivedMessage( );
 
       for (auto it=last_messages.begin(); it!=last_messages.end(); it++)
       {
@@ -276,27 +280,32 @@ namespace c5gopen
       
         size_t arm = atoi(std::string(arm_number).c_str());
 
-        std::pair<int, cnr::MQTTPayload> msg_complete = it->second;
-        
+        // std::pair<int, cnr::MQTTPayload> msg_complete = it->second;
+
         // Expected payload 8bytes every joints -> maximum joint expected is 10
-        if( std::get<0>(msg_complete)%SIZE_OF_DOUBLE != 0 || std::get<0>(msg_complete)/SIZE_OF_DOUBLE > ORL_MAX_AXIS )
-        {
-          CNR_ERROR(logger_, "Invalid number of bytes for the subscribed topic: " << it->first 
-                            << ". Received: " << std::get<0>(msg_complete) << " bytes.");  
-          return false;
-        }
+        // if( std::get<0>(msg_complete)%SIZE_OF_DOUBLE != 0 || std::get<0>(msg_complete)/SIZE_OF_DOUBLE > ORL_MAX_AXIS )
+        // {
+        //   CNR_ERROR(logger_, "Invalid number of bytes for the subscribed topic: " << it->first 
+        //                     << ". Received: " << std::get<0>(msg_complete) << " bytes.");  
+        //   return false;
+        // }
 
-        char c[8] = {0};
-        c5gopen::RobotJointState target_joint_position;
+        // char c[8] = {0};
+        // c5gopen::RobotJointState target_joint_position;
         
-        for(size_t idx=0; idx<std::get<0>(msg_complete)/SIZE_OF_DOUBLE; idx++)
-        {
-          memcpy(c, std::get<1>(msg_complete).payload + idx * SIZE_OF_DOUBLE, SIZE_OF_DOUBLE);
-          target_joint_position.target_pos.value[idx] = atof(c);
-          memset(c,0x0,SIZE_OF_DOUBLE);
-        } 
+        // for(size_t idx=0; idx<std::get<0>(msg_complete)/SIZE_OF_DOUBLE; idx++)
+        // {
+        //   memcpy(c, std::get<1>(msg_complete).payload + idx * SIZE_OF_DOUBLE, SIZE_OF_DOUBLE);
+        //   target_joint_position.target_pos.value[idx] = atof(c);
+        //   memset(c,0x0,SIZE_OF_DOUBLE);
+        // } 
 
-        c5gopen_driver->setRobotJointAbsoluteTargetPosition(arm, target_joint_position); 
+        // // The absolute trajectory need to be in degree
+        // target_joint_position.target_pos.unit_type = ORL_POSITION_LINK_DEGREE;
+
+        // c5gopen_driver->setRobotJointAbsoluteTargetPosition(arm, target_joint_position);
+
+        c5gopen_driver->setRobotJointAbsoluteTargetPosition(arm, it->second); 
       }
       
       static bool buff_full = false;
@@ -327,6 +336,8 @@ namespace c5gopen
       if( cycle_sub % 100000 == 0)
         CNR_DEBUG(logger_, "C5GOpen MQTT subscribe stats [ average / max ] us : [ " << tot_delta_sub_ << "/ " << tot_max_sub_ << " ] us" );
     }
+
+    CNR_DEBUG(logger_,"updateRobotTargetTrajectory");
 
     return true;
   }
