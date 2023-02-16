@@ -49,10 +49,66 @@ namespace c5gopen
   boost::circular_buffer<int64_t> delta_time_pub_(LOG_SAMPLES);
   boost::circular_buffer<int64_t> delta_time_sub_(LOG_SAMPLES);
 
-  C5GOpenMQTT::C5GOpenMQTT( const char *id, const char *host, int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger):
+  void C5GOpenMsgDecoder::on_message(const struct mosquitto_message *msg)
+  {
+    mtx_mqtt_.lock();    
+    if (msg->payloadlen < MAX_PAYLOAD_SIZE)
+    {
+      char* buffer = new char[msg->payloadlen];
+      memcpy(buffer, msg->payload, msg->payloadlen);
+
+      std::string buffer_str(buffer);
+    
+      Json::Reader reader;
+      Json::Value root;
+    
+      reader.parse(buffer_str,root);
+      
+      c5gopen::RobotJointState joint_positions;
+      
+      joint_positions.target_pos.value[0] = root["J1"].asDouble();
+      joint_positions.target_pos.value[1] = root["J2"].asDouble();
+      joint_positions.target_pos.value[2] = root["J3"].asDouble();
+      joint_positions.target_pos.value[3] = root["J4"].asDouble();
+      joint_positions.target_pos.value[4] = root["J5"].asDouble();
+      joint_positions.target_pos.value[5] = root["J6"].asDouble();
+      joint_positions.target_pos.value[6] = root["J7"].asDouble();
+      joint_positions.target_pos.value[7] = root["J8"].asDouble();
+      joint_positions.target_pos.value[8] = root["J9"].asDouble();
+      joint_positions.target_pos.value[9] = root["J10"].asDouble();
+
+      // The absolute trajectory need to be in degree
+      joint_positions.target_pos.unit_type = ORL_POSITION_LINK_DEGREE;
+
+      last_received_msg_[std::string(msg->topic)] = joint_positions;
+    
+      delete[] buffer;
+    }
+    
+    mtx_mqtt_.unlock();
+  }
+    
+  std::map<std::string,c5gopen::RobotJointState> C5GOpenMsgDecoder::getLastReceivedMessage()
+  {
+    return last_received_msg_;
+  }
+
+  C5GOpenMQTT::C5GOpenMQTT( const char *id, const char *host, int port, MsgDecoder* msg_decoder, 
+                            const std::shared_ptr<cnr_logger::TraceLogger>& logger):
                             MQTTClient(id, host, port, logger)
   {
-    // nothing to do here
+    if (msg_decoder == NULL)
+    {
+      std::cout << "NULL ptr to decoder pointer" << std::endl;
+      return;
+    }
+
+    if (cnr::mqtt::init_library( msg_decoder ) < 0)
+    {
+      std::cout << "Cannot initialize the encoder and decoder library" << std::endl;
+      return;
+    }
+
   }
 
   C5GOpenMQTT::~C5GOpenMQTT() 
@@ -74,128 +130,351 @@ namespace c5gopen
 
       std::map<size_t,c5gopen::RobotJointStateArray> robot_joint_state_link_log_ = c5gopen_driver->getRobotJointStateLinkArray( );      
    
-      for (std::map<size_t,c5gopen::RobotJointStateArray>::iterator it=robot_joint_state_link_log_.begin(); it!=robot_joint_state_link_log_.end(); it++ )
-      {
-        char arm[10]; 
+      char arm[10];
+    
+      for ( std::map<size_t,c5gopen::RobotJointStateArray>::iterator it=robot_joint_state_link_log_.begin(); it!=robot_joint_state_link_log_.end(); it++ )
+      {       
+        Json::Value root;
+        Json::StreamWriterBuilder builder;
+        std::string json_file;
+        char jnt_name[10];
+
         sprintf(arm,"%d",it->first);
        
+        root["time"] = it->second.time_us;
+        
+        ///////////////////////////////////
         // Real joints positions
-        uint32_t payload_len_d = (uint32_t) sizeof(it->second.real_pos);
-        uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
-        payload_len_ = payload_len_d + payload_len_t;
-        memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
+        // uint32_t payload_len_d = (uint32_t) sizeof(it->second.real_pos);
+        // uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
+        // payload_len_ = payload_len_d + payload_len_t;
+        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
+        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx, MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
+        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx, MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
+        
+        // topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_positions";
+        // if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+        //   return false; 
 
         topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_positions";
-        if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
-          return false; 
+        
+        for (size_t idx=0; idx<ORL_MAX_AXIS; idx++)
+        {
+          sprintf(jnt_name,"J%d",idx+1); 
+          root[jnt_name] =  it->second.real_pos[idx];
+        }
+                
+        json_file = Json::writeString(builder, root);
+        payload_len_ = json_file.length() + 1;
 
+        if (payload_len_ < MAX_PAYLOAD_SIZE)
+        {
+          strcpy(payload_, json_file.c_str());
+          
+          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          {
+            CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
+            return false;
+          }
+        }
+        else
+        {
+          CNR_WARN( logger_, "Payload length exceed max limit for the topic " << topic_name_);    
+        }
+          
+      
+        ///////////////////////////////////
         // Real joints velocities
-        payload_len_d = (uint32_t) sizeof(it->second.real_vel);
-        payload_len_ = payload_len_d + payload_len_t;
-        memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
+        // payload_len_d = (uint32_t) sizeof(it->second.real_vel);
+        // payload_len_ = payload_len_d + payload_len_t;
+        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
+        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_vel[idx] );
+        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_vel[idx] );
+
+        // topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_velocities";
+        // if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_velocities";
-        if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
-          return false;
+        
+        for (size_t idx=0; idx<ORL_MAX_AXIS; idx++)
+        {
+          sprintf(jnt_name,"J%d",idx+1); 
+          root[jnt_name] =  it->second.real_vel[idx];
+        }
+        
+        json_file = Json::writeString(builder, root);
+        payload_len_ = json_file.length() + 1;
 
+        if (payload_len_ < MAX_PAYLOAD_SIZE)
+        {
+          strcpy(payload_, json_file.c_str());
+          
+          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          {
+            CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
+            return false;
+          }
+        }
+        else
+        {
+          CNR_WARN( logger_, "Payload length exceed max limit for the topic " << topic_name_);    
+        }
+
+     
+        ///////////////////////////////////
         // Target joints positions
-        payload_len_d = (uint32_t) sizeof(it->second.target_pos);
-        payload_len_ = payload_len_d + payload_len_t;
-        memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
+        // payload_len_d = (uint32_t) sizeof(it->second.target_pos);
+        // payload_len_ = payload_len_d + payload_len_t;
+        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
+        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
         
-        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
+        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
         
+        // topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_positions";
+        // if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+        //   return false;        
+
         topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_positions";
-        if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
-          return false;        
-
-        // Target joints velocities
-        payload_len_d = (uint32_t) sizeof(it->second.target_vel);
-        payload_len_ = payload_len_d + payload_len_t;
-        memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
-
-        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_vel[idx] );
         
+        for (size_t idx=0; idx<ORL_MAX_AXIS; idx++)
+        {
+          sprintf(jnt_name,"J%d",idx+1); 
+          root[jnt_name] =  it->second.target_pos[idx];
+        }
+                
+        root["time"] = it->second.time_us;
+        
+        json_file = Json::writeString(builder, root);
+        payload_len_ = json_file.length() + 1;
+
+        if (payload_len_ < MAX_PAYLOAD_SIZE)
+        {
+          strcpy(payload_, json_file.c_str());
+          
+          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          {
+            CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
+            return false;
+          }
+        }
+        else
+        {
+          CNR_WARN( logger_, "Payload length exceed max limit for the topic " << topic_name_);    
+        }
+
+        ///////////////////////////////////
+        // Target joints velocities
+        // payload_len_d = (uint32_t) sizeof(it->second.target_vel);
+        // payload_len_ = payload_len_d + payload_len_t;
+        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
+        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
+
+        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_vel[idx] );
+        
+        // topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_velocities";
+        // if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+        //   return false;
+
         topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_velocities";
-        if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
-          return false;
+        
+        for (size_t idx=0; idx<ORL_MAX_AXIS; idx++)
+        {
+          sprintf(jnt_name,"J%d",idx+1); 
+          root[jnt_name] =  it->second.target_vel[idx];
+        }
+        
+        json_file = Json::writeString(builder, root);
+        payload_len_ = json_file.length() + 1;
+
+        if (payload_len_ < MAX_PAYLOAD_SIZE)
+        {
+          strcpy(payload_, json_file.c_str());
+          
+          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          {
+            CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
+            return false;
+          }
+        }
+        else
+        {
+          CNR_WARN( logger_, "Payload length exceed max limit for the topic " << topic_name_);    
+        }
 
       }
 
       std::map<size_t,c5gopen::RobotCartStateArray> robot_cart_state_log_ = c5gopen_driver->getRobotCartStateArray( );      
       for ( std::map<size_t,c5gopen::RobotCartStateArray>::iterator it=robot_cart_state_log_.begin(); it!=robot_cart_state_log_.end(); it++ )
       {
-        char arm[10]; 
+        Json::Value root;
+        Json::StreamWriterBuilder builder;
+        std::string json_file;
+        
+        //char arm[10]; 
         sprintf(arm,"%d",it->first);
 
+        root["time"] = it->second.time_us;
+
+        ///////////////////////////////////  
         // Real Cartesian positions
-        uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
-        uint32_t payload_len_d = (uint32_t) sizeof(it->second.real_pos);
-        uint32_t payload_len_c = (uint32_t) sizeof(it->second.config_flags_real);
-        payload_len_ = payload_len_t + payload_len_d + payload_len_c;
+        // uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
+        // uint32_t payload_len_d = (uint32_t) sizeof(it->second.real_pos);
+        // uint32_t payload_len_c = (uint32_t) sizeof(it->second.config_flags_real);
+        // payload_len_ = payload_len_t + payload_len_d + payload_len_c;
 
-        memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
+        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
+        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
+        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
 
-        memcpy((char*)(payload_ + payload_len_t + sizeof(it->second.real_pos)), it->second.config_flags_real, sizeof(it->second.config_flags_real) );  
+        // memcpy((char*)(payload_ + payload_len_t + sizeof(it->second.real_pos)), it->second.config_flags_real, sizeof(it->second.config_flags_real) );  
 
+        // topic_name_ = "robot/arm" + std::string(arm) + "/real_cartesian_positions";
+        // if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
+        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/real_cartesian_positions";
-        if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
-          return false;
+        
+        root["x"] =  it->second.real_pos[0];
+        root["y"] =  it->second.real_pos[1];
+        root["z"] =  it->second.real_pos[2];
+        root["a"] =  it->second.real_pos[3];
+        root["e"] =  it->second.real_pos[4];
+        root["r"] =  it->second.real_pos[5];
+        root["config_flags"] =  it->second.config_flags_real;
+        
+        json_file = Json::writeString(builder, root);
+        payload_len_ = json_file.length() + 1;
 
+        if (payload_len_ < MAX_PAYLOAD_SIZE)
+        {
+          strcpy(payload_, json_file.c_str());
+          
+          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          {
+            CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
+            return false;
+          }
+        }
+        else
+        {
+          CNR_WARN( logger_, "Payload length exceed max limit for the topic " << topic_name_);    
+        }
+
+
+        ///////////////////////////////////
         // Target Cartesian positions
-        payload_len_d = (uint32_t) sizeof(it->second.target_pos);
-        payload_len_c = (uint32_t) sizeof(it->second.config_flags_target);
-        payload_len_ = payload_len_t + payload_len_d + payload_len_c;
+        // payload_len_d = (uint32_t) sizeof(it->second.target_pos);
+        // payload_len_c = (uint32_t) sizeof(it->second.config_flags_target);
+        // payload_len_ = payload_len_t + payload_len_d + payload_len_c;
 
-        memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
+        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
+        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
 
-        for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
+        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
+        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
 
-        memcpy((char*)(payload_ + payload_len_t + sizeof(it->second.target_pos)), it->second.config_flags_target, sizeof(it->second.config_flags_target) );
+        // memcpy((char*)(payload_ + payload_len_t + sizeof(it->second.target_pos)), it->second.config_flags_target, sizeof(it->second.config_flags_target) );
+
+        // topic_name_ = "robot/arm" + std::string(arm) + "/target_cartesian_positions";
+        // if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
+        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/target_cartesian_positions";
-        if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
-          return false;
+        
+        root["x"] =  it->second.target_pos[0];
+        root["y"] =  it->second.target_pos[1];
+        root["z"] =  it->second.target_pos[2];
+        root["a"] =  it->second.target_pos[3];
+        root["e"] =  it->second.target_pos[4];
+        root["r"] =  it->second.target_pos[5];
+        root["config_flags"] =  it->second.config_flags_target;
+        
+        json_file = Json::writeString(builder, root);
+        payload_len_ = json_file.length() + 1;
+
+        if (payload_len_ < MAX_PAYLOAD_SIZE)
+        {
+          strcpy(payload_, json_file.c_str());
+          
+          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          {
+            CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
+            return false;
+          }
+        }
+        else
+        {
+          CNR_WARN( logger_, "Payload length exceed max limit for the topic " << topic_name_);    
+        }
+
+
       }
 
       std::map<size_t,c5gopen::RobotGenericArray> robot_motor_current_log_ = c5gopen_driver->getRobotMotorCurrentArray( );      
       for (  std::map<size_t,c5gopen::RobotGenericArray>::iterator it=robot_motor_current_log_.begin(); it!=robot_motor_current_log_.end(); it++ )
       {
-        char arm[10]; 
+        Json::Value root;
+        Json::StreamWriterBuilder builder;
+        std::string json_file;
+        char jnt_name[10];
+
+        //char arm[10]; 
         sprintf(arm,"%d",it->first);
-        uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
-        uint32_t payload_len_d = (uint32_t) sizeof(it->second.value); 
-        payload_len_ = payload_len_t + payload_len_d;
 
+        root["time"] = it->second.time_us;
+
+        ///////////////////////////////////
         // Motor currents
-        memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
+        // uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
+        // uint32_t payload_len_d = (uint32_t) sizeof(it->second.value); 
+        // payload_len_ = payload_len_t + payload_len_d;
 
-        for (size_t idx=0; idx<payload_len_/SIZE_OF_DOUBLE; idx++)
-          snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.value[idx] );
+        
+        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
+        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
+
+        // for (size_t idx=0; idx<payload_len_/SIZE_OF_DOUBLE; idx++)
+        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.value[idx] );
+
+        // topic_name_ = "robot/arm" + std::string(arm) + "/motor_currents";
+        // if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
+        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/motor_currents";
-        if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
-          return false;
+        
+        for (size_t idx=0; idx<ORL_MAX_AXIS; idx++)
+        {
+          sprintf(jnt_name,"J%d",idx+1); 
+          root[jnt_name] =  it->second.target_vel[idx];
+        }
+        
+        json_file = Json::writeString(builder, root);
+        payload_len_ = json_file.length() + 1;
+
+        if (payload_len_ < MAX_PAYLOAD_SIZE)
+        {
+          strcpy(payload_, json_file.c_str());
+          
+          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          {
+            CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
+            return false;
+          }
+        }
+        else
+        {
+          CNR_WARN( logger_, "Payload length exceed max limit for the topic " << topic_name_);    
+        }
+
       }
 
       static int cycle_pub = 0;
@@ -230,9 +509,6 @@ namespace c5gopen
     else
       CNR_WARN( logger_, "C5GOpen not initialized yet, can't publish C5GOpen data.");
 
-
-    CNR_DEBUG(logger_,"publishData");
-
     return true;
   }
 
@@ -262,8 +538,7 @@ namespace c5gopen
       if (loop(loop_timeout) != MOSQ_ERR_SUCCESS)
         return false;
       
-      //std::map<std::string,std::pair<int, cnr::MQTTPayload>> last_messages = getLastReceivedMessage( );
-      std::map<std::string,c5gopen::RobotJointState> last_messages = getLastReceivedMessage( );
+      std::map<std::string,c5gopen::RobotJointState> last_messages = drapebot_msg_decoder_->getLastReceivedMessage( );
 
       for (auto it=last_messages.begin(); it!=last_messages.end(); it++)
       {
@@ -279,31 +554,6 @@ namespace c5gopen
         it->first.copy(arm_number,found_delimiter-(found_arm+3),found_arm+3);
       
         size_t arm = atoi(std::string(arm_number).c_str());
-
-        // std::pair<int, cnr::MQTTPayload> msg_complete = it->second;
-
-        // Expected payload 8bytes every joints -> maximum joint expected is 10
-        // if( std::get<0>(msg_complete)%SIZE_OF_DOUBLE != 0 || std::get<0>(msg_complete)/SIZE_OF_DOUBLE > ORL_MAX_AXIS )
-        // {
-        //   CNR_ERROR(logger_, "Invalid number of bytes for the subscribed topic: " << it->first 
-        //                     << ". Received: " << std::get<0>(msg_complete) << " bytes.");  
-        //   return false;
-        // }
-
-        // char c[8] = {0};
-        // c5gopen::RobotJointState target_joint_position;
-        
-        // for(size_t idx=0; idx<std::get<0>(msg_complete)/SIZE_OF_DOUBLE; idx++)
-        // {
-        //   memcpy(c, std::get<1>(msg_complete).payload + idx * SIZE_OF_DOUBLE, SIZE_OF_DOUBLE);
-        //   target_joint_position.target_pos.value[idx] = atof(c);
-        //   memset(c,0x0,SIZE_OF_DOUBLE);
-        // } 
-
-        // // The absolute trajectory need to be in degree
-        // target_joint_position.target_pos.unit_type = ORL_POSITION_LINK_DEGREE;
-
-        // c5gopen_driver->setRobotJointAbsoluteTargetPosition(arm, target_joint_position);
 
         c5gopen_driver->setRobotJointAbsoluteTargetPosition(arm, it->second); 
       }
@@ -337,10 +587,7 @@ namespace c5gopen
         CNR_DEBUG(logger_, "C5GOpen MQTT subscribe stats [ average / max ] us : [ " << tot_delta_sub_ << "/ " << tot_max_sub_ << " ] us" );
     }
 
-    CNR_DEBUG(logger_,"updateRobotTargetTrajectory");
-
     return true;
   }
-
 
 } // end namespace c5gopen

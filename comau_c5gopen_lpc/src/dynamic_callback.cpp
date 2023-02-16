@@ -38,6 +38,8 @@
 
 namespace cnr
 {
+  namespace mqtt
+  {
     OnConnectCallbackBase* AvailableOnConnectCallbackSlots[] = {
         new OnConnectDynamicCallback<0x00>()
     };
@@ -256,5 +258,6 @@ namespace cnr
             AvailableOnPublishCallbackSlots[m_nAllocIndex]->Free();
         }
     }
+  } // end namespace mqtt
 } // end namespace cnr
 

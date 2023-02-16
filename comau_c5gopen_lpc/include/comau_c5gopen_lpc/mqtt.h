@@ -43,11 +43,9 @@
 #include <mosquitto.h>
 
 #include <jsoncpp/json/json.h>
-
 #include <boost/circular_buffer.hpp>
-#include <cnr_logger/cnr_logger.h>
 
-#include <comau_c5gopen_lpc/c5gopen_utilities.h>
+#include <cnr_logger/cnr_logger.h>
 
 #define MAX_PAYLOAD_SIZE 1024
 #define DEFAULT_KEEP_ALIVE 60
@@ -56,47 +54,59 @@
 
 namespace cnr
 {
-  // struct MQTTPayload
-  // { 
-  //   char payload[MAX_PAYLOAD_SIZE] = {0};  
-  // };
-
-
-  class MQTTClient 
+  namespace mqtt
   {
-  protected:  
-    std::shared_ptr<cnr_logger::TraceLogger> logger_;
+    class MsgDecoder
+    {
+    public:
+      MsgDecoder() {};
+      // The method should be reimplemented on the base of the application
+      // virtual void on_message( struct mosquitto *mosq, void *obj, const struct mosquitto_message *msg ) { };
+      virtual void on_message( const struct mosquitto_message *msg ) { };
+    
+    public:
+      std::mutex mtx_mqtt_;
+    };
 
-  private: 
-    struct mosquitto *mosq_;
-    uint8_t obj_[1024];
-    int stop_raised_ = 0; 
-    char errbuffer_[1024] = {0};
+    int init_library( MsgDecoder* msg_decoder );
 
-  public:
-    MQTTClient (const char *id, const char *host, int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger);
-    ~MQTTClient();
 
-    int loop(const int& timeout=1000);
-    int stop() {return stop_raised_ = 1;}
+    class MQTTClient 
+    {
+    protected:  
+      std::shared_ptr<cnr_logger::TraceLogger> logger_;
 
-    int reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff);
-    int subscribe(uint16_t *mid, const char *sub, int qos=0);
-    int publish(const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name);
-    //std::map<std::string,std::pair<int,struct cnr::MQTTPayload>> getLastReceivedMessage( );
-    std::map<std::string,c5gopen::RobotJointState> getLastReceivedMessage( );
+    private: 
+      struct mosquitto *mosq_;
+      uint8_t obj_[1024];
+      int stop_raised_ = 0; 
+      char errbuffer_[1024] = {0};
 
-    typedef void (MQTTClient::*on_connect_callback)  (void *obj, int reason_code);
-    typedef void (MQTTClient::*on_message_callback)  (void *obj, const struct mosquitto_message *msg);
-    typedef void (MQTTClient::*on_subscribe_callback)(void *obj, uint16_t mid, int qos_count, const uint8_t *granted_qos);
-    typedef void (MQTTClient::*on_publish_callback)  (void *obj, uint16_t mid);
+    public:
+      MQTTClient (const char *id, const char *host, int port, 
+                  cnr::mqtt::MsgDecoder* msg_decoder,
+                  const std::shared_ptr<cnr_logger::TraceLogger>& logger);
+      ~MQTTClient();
 
-    void on_connect  (void *obj, int reason_code);
-    void on_message  (void *obj, const struct mosquitto_message *msg);
-    void on_subscribe(void *obj, uint16_t mid, int qos_count, const uint8_t *granted_qos);
-    void on_publish  (void *obj, uint16_t mid);
+      int loop(const int& timeout=1000);
+      int stop() {return stop_raised_ = 1;}
 
-  }; 
-} // end namespace
+      int reconnect(unsigned int reconnect_delay, unsigned int reconnect_delay_max, bool reconnect_exponential_backoff);
+      int subscribe(uint16_t *mid, const char *sub, int qos=0);
+      int publish(const uint8_t* payload, const uint32_t& payload_len, const std::string& topic_name);
+      
+      typedef void (MQTTClient::*on_connect_callback)  (void *obj, int reason_code);
+      typedef void (MQTTClient::*on_message_callback)  (void *obj, const struct mosquitto_message *msg);
+      typedef void (MQTTClient::*on_subscribe_callback)(void *obj, uint16_t mid, int qos_count, const uint8_t *granted_qos);
+      typedef void (MQTTClient::*on_publish_callback)  (void *obj, uint16_t mid);
+
+      void on_connect  (void *obj, int reason_code);
+      void on_message  (void *obj, const struct mosquitto_message *msg);
+      void on_subscribe(void *obj, uint16_t mid, int qos_count, const uint8_t *granted_qos);
+      void on_publish  (void *obj, uint16_t mid);
+
+    };
+  } // end namespace mqtt 
+} // end namespace cnr
 
 #endif //SIMPLECLIENT_MQTT_H
