@@ -132,7 +132,6 @@ namespace c5gopen
       for ( std::map<size_t,c5gopen::RobotJointStateArray>::iterator it=robot_joint_state_link_log_.begin(); it!=robot_joint_state_link_log_.end(); it++ )
       {       
         Json::Value root;
-        //Json::FastWriter writer;
         std::string json_file;
         char jnt_name[10];
 
@@ -142,18 +141,6 @@ namespace c5gopen
         
         ///////////////////////////////////
         // Real joints positions
-        // uint32_t payload_len_d = (uint32_t) sizeof(it->second.real_pos);
-        // uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
-        // payload_len_ = payload_len_d + payload_len_t;
-        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
-
-        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx, MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
-        
-        // topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_positions";
-        // if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
-        //   return false; 
 
         topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_positions";
         
@@ -184,17 +171,6 @@ namespace c5gopen
       
         ///////////////////////////////////
         // Real joints velocities
-        // payload_len_d = (uint32_t) sizeof(it->second.real_vel);
-        // payload_len_ = payload_len_d + payload_len_t;
-        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
-
-        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_vel[idx] );
-
-        // topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_velocities";
-        // if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
-        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/real_joints_velocities";
         
@@ -225,17 +201,6 @@ namespace c5gopen
      
         ///////////////////////////////////
         // Target joints positions
-        // payload_len_d = (uint32_t) sizeof(it->second.target_pos);
-        // payload_len_ = payload_len_d + payload_len_t;
-        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
-        
-        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
-        
-        // topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_positions";
-        // if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
-        //   return false;        
 
         topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_positions";
         
@@ -267,17 +232,6 @@ namespace c5gopen
 
         ///////////////////////////////////
         // Target joints velocities
-        // payload_len_d = (uint32_t) sizeof(it->second.target_vel);
-        // payload_len_ = payload_len_d + payload_len_t;
-        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
-
-        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_vel[idx] );
-        
-        // topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_velocities";
-        // if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
-        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/target_joints_velocities";
         
@@ -311,7 +265,6 @@ namespace c5gopen
       for ( std::map<size_t,c5gopen::RobotCartStateArray>::iterator it=robot_cart_state_log_.begin(); it!=robot_cart_state_log_.end(); it++ )
       {
         Json::Value root;
-        //Json::StreamWriterBuilder builder;
         std::string json_file;
         
         //char arm[10]; 
@@ -321,22 +274,6 @@ namespace c5gopen
 
         ///////////////////////////////////  
         // Real Cartesian positions
-        // uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
-        // uint32_t payload_len_d = (uint32_t) sizeof(it->second.real_pos);
-        // uint32_t payload_len_c = (uint32_t) sizeof(it->second.config_flags_real);
-        // payload_len_ = payload_len_t + payload_len_d + payload_len_c;
-
-        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
-
-        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.real_pos[idx] );
-
-        // memcpy((char*)(payload_ + payload_len_t + sizeof(it->second.real_pos)), it->second.config_flags_real, sizeof(it->second.config_flags_real) );  
-
-        // topic_name_ = "robot/arm" + std::string(arm) + "/real_cartesian_positions";
-        // if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
-        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/real_cartesian_positions";
         
@@ -369,21 +306,6 @@ namespace c5gopen
 
         ///////////////////////////////////
         // Target Cartesian positions
-        // payload_len_d = (uint32_t) sizeof(it->second.target_pos);
-        // payload_len_c = (uint32_t) sizeof(it->second.config_flags_target);
-        // payload_len_ = payload_len_t + payload_len_d + payload_len_c;
-
-        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
-
-        // for (size_t idx=0; idx<payload_len_d/SIZE_OF_DOUBLE; idx++)
-        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.target_pos[idx] );
-
-        // memcpy((char*)(payload_ + payload_len_t + sizeof(it->second.target_pos)), it->second.config_flags_target, sizeof(it->second.config_flags_target) );
-
-        // topic_name_ = "robot/arm" + std::string(arm) + "/target_cartesian_positions";
-        // if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
-        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/target_cartesian_positions";
         
@@ -420,7 +342,6 @@ namespace c5gopen
       for (  std::map<size_t,c5gopen::RobotGenericArray>::iterator it=robot_motor_current_log_.begin(); it!=robot_motor_current_log_.end(); it++ )
       {
         Json::Value root;
-        //Json::StreamWriterBuilder builder;
         std::string json_file;
         char jnt_name[10];
 
@@ -431,20 +352,6 @@ namespace c5gopen
 
         ///////////////////////////////////
         // Motor currents
-        // uint32_t payload_len_t = (uint32_t) sizeof(it->second.time_us)*2;
-        // uint32_t payload_len_d = (uint32_t) sizeof(it->second.value); 
-        // payload_len_ = payload_len_t + payload_len_d;
-
-        
-        // memset( payload_, 0, MAX_PAYLOAD_SIZE );
-        // snprintf( (char*)payload_, MAX_PAYLOAD_SIZE, "%lld", it->second.time_us );
-
-        // for (size_t idx=0; idx<payload_len_/SIZE_OF_DOUBLE; idx++)
-        //   snprintf ( (char*)payload_ + payload_len_t + SIZE_OF_DOUBLE * idx , MAX_PAYLOAD_SIZE, "%f", it->second.value[idx] );
-
-        // topic_name_ = "robot/arm" + std::string(arm) + "/motor_currents";
-        // if ( publish( payload_, payload_len_, topic_name_ ) != MOSQ_ERR_SUCCESS )
-        //   return false;
 
         topic_name_ = "robot/arm" + std::string(arm) + "/motor_currents";
         
