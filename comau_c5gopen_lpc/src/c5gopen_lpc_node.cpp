@@ -125,6 +125,8 @@ int  main (int argc, char **argv)
 
         if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver,  c5gopen_cfg.mqtt_cfg_.mqtt_timeout_ ))
           CNR_WARN( logger, "Can't update robot target trajectory.");
+
+        CNR_DEBUG_THROTTLE( logger, 5, "Main node alive." );
       }
       else
       {

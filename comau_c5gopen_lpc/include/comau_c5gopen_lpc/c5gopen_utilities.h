@@ -43,8 +43,14 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <cnr_logger/cnr_logger_macros.h>
+
+
 namespace c5gopen
 {
+
+  void tic(const std::shared_ptr<cnr_logger::TraceLogger>& logger, int mode=0);
+
   struct RobotJointState
   {
     int64_t time_us;

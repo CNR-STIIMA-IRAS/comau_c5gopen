@@ -46,7 +46,6 @@
 
 namespace c5gopen
 {
-
   class C5GOpenMsgDecoder: public cnr::mqtt::MsgDecoder
   {
   public:
@@ -60,7 +59,7 @@ namespace c5gopen
     std::map<std::string,c5gopen::RobotJointState> last_received_msg_;
   };
 
-  class C5GOpenMQTT : public cnr::mqtt::MQTTClient 
+  class C5GOpenMQTT 
   {
   private:
     uint8_t payload_[MAX_PAYLOAD_SIZE]; 
@@ -70,7 +69,10 @@ namespace c5gopen
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::microseconds microsec;
 
-    c5gopen::C5GOpenMsgDecoder* drapebot_msg_decoder_;
+    std::shared_ptr<cnr_logger::TraceLogger> logger_;
+
+    cnr::mqtt::MQTTClient* mqtt_client_; 
+    c5gopen::C5GOpenMsgDecoder* c5gopen_msg_decoder_;
       
   public:
     C5GOpenMQTT (const char *id, const char *host, int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger); 

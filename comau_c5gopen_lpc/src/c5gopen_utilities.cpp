@@ -39,12 +39,23 @@
 #include <stdio.h>
 #include <fstream>
 
-#include <cnr_logger/cnr_logger_macros.h>
-
 #include <comau_c5gopen_lpc/c5gopen_utilities.h>
 
 namespace c5gopen
 {
+
+  void tic(const std::shared_ptr<cnr_logger::TraceLogger>& logger, int mode) 
+  {
+    static std::chrono::high_resolution_clock::time_point t_start;
+  
+    if (mode==0)
+        t_start = std::chrono::high_resolution_clock::now();
+    else 
+    {
+      auto t_end = std::chrono::high_resolution_clock::now();
+      CNR_DEBUG_THROTTLE(logger, 1.0, "Elapsed time is " << (t_end-t_start).count()*1E-9 << "  seconds" );
+    }
+  }
 
   bool load_c5gopen_parameters( const std::string& config_file_name, C5GOpenNodeCfg& c5gopen_cfg )
   {

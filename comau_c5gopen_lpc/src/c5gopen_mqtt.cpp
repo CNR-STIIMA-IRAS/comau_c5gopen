@@ -39,7 +39,6 @@
 
 namespace c5gopen
 {
-
   double tot_delta_pub_ = 0;
   int64_t tot_max_pub_ = 0;
 
@@ -93,27 +92,25 @@ namespace c5gopen
     return last_received_msg_;
   }
 
-  C5GOpenMQTT::C5GOpenMQTT( const char *id, const char *host, int port, MsgDecoder* msg_decoder, 
+  C5GOpenMQTT::C5GOpenMQTT( const char *id, const char *host, int port,
                             const std::shared_ptr<cnr_logger::TraceLogger>& logger):
-                            MQTTClient(id, host, port, logger)
+                            logger_(logger)
   {
-    if (msg_decoder == NULL)
+    try
     {
-      std::cout << "NULL ptr to decoder pointer" << std::endl;
-      return;
+      c5gopen_msg_decoder_ = new c5gopen::C5GOpenMsgDecoder();
+      mqtt_client_ = new cnr::mqtt::MQTTClient(id, host, port, c5gopen_msg_decoder_, logger_);
     }
-
-    if (cnr::mqtt::init_library( msg_decoder ) < 0)
+    catch(const std::exception& e)
     {
-      std::cout << "Cannot initialize the encoder and decoder library" << std::endl;
-      return;
+      std::cerr << e.what() << '\n';
     }
-
   }
 
   C5GOpenMQTT::~C5GOpenMQTT() 
   { 
-    // nothing to do here
+    delete c5gopen_msg_decoder_;
+    delete mqtt_client_;
   }
 
   bool C5GOpenMQTT::publishData( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver )
@@ -135,7 +132,7 @@ namespace c5gopen
       for ( std::map<size_t,c5gopen::RobotJointStateArray>::iterator it=robot_joint_state_link_log_.begin(); it!=robot_joint_state_link_log_.end(); it++ )
       {       
         Json::Value root;
-        Json::StreamWriterBuilder builder;
+        //Json::FastWriter writer;
         std::string json_file;
         char jnt_name[10];
 
@@ -166,14 +163,14 @@ namespace c5gopen
           root[jnt_name] =  it->second.real_pos[idx];
         }
                 
-        json_file = Json::writeString(builder, root);
+        json_file = Json::FastWriter().write(root);
         payload_len_ = json_file.length() + 1;
 
         if (payload_len_ < MAX_PAYLOAD_SIZE)
         {
-          strcpy(payload_, json_file.c_str());
+          strcpy((char *)payload_, json_file.c_str());
           
-          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          if ( mqtt_client_->publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
           {
             CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
             return false;
@@ -207,14 +204,14 @@ namespace c5gopen
           root[jnt_name] =  it->second.real_vel[idx];
         }
         
-        json_file = Json::writeString(builder, root);
+        json_file = Json::FastWriter().write(root);
         payload_len_ = json_file.length() + 1;
 
         if (payload_len_ < MAX_PAYLOAD_SIZE)
         {
-          strcpy(payload_, json_file.c_str());
+          strcpy((char *)payload_, json_file.c_str());
           
-          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          if ( mqtt_client_->publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
           {
             CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
             return false;
@@ -250,14 +247,14 @@ namespace c5gopen
                 
         root["time"] = it->second.time_us;
         
-        json_file = Json::writeString(builder, root);
+        json_file = Json::FastWriter().write(root);
         payload_len_ = json_file.length() + 1;
 
         if (payload_len_ < MAX_PAYLOAD_SIZE)
         {
-          strcpy(payload_, json_file.c_str());
+          strcpy((char *)payload_, json_file.c_str());
           
-          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          if ( mqtt_client_->publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
           {
             CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
             return false;
@@ -290,14 +287,14 @@ namespace c5gopen
           root[jnt_name] =  it->second.target_vel[idx];
         }
         
-        json_file = Json::writeString(builder, root);
+        json_file = Json::FastWriter().write(root);
         payload_len_ = json_file.length() + 1;
 
         if (payload_len_ < MAX_PAYLOAD_SIZE)
         {
-          strcpy(payload_, json_file.c_str());
+          strcpy((char *)payload_, json_file.c_str());
           
-          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          if ( mqtt_client_->publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
           {
             CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
             return false;
@@ -314,7 +311,7 @@ namespace c5gopen
       for ( std::map<size_t,c5gopen::RobotCartStateArray>::iterator it=robot_cart_state_log_.begin(); it!=robot_cart_state_log_.end(); it++ )
       {
         Json::Value root;
-        Json::StreamWriterBuilder builder;
+        //Json::StreamWriterBuilder builder;
         std::string json_file;
         
         //char arm[10]; 
@@ -351,14 +348,14 @@ namespace c5gopen
         root["r"] =  it->second.real_pos[5];
         root["config_flags"] =  it->second.config_flags_real;
         
-        json_file = Json::writeString(builder, root);
+        json_file = Json::FastWriter().write(root);
         payload_len_ = json_file.length() + 1;
 
         if (payload_len_ < MAX_PAYLOAD_SIZE)
         {
-          strcpy(payload_, json_file.c_str());
+          strcpy((char *)payload_, json_file.c_str());
           
-          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          if ( mqtt_client_->publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
           {
             CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
             return false;
@@ -398,14 +395,14 @@ namespace c5gopen
         root["r"] =  it->second.target_pos[5];
         root["config_flags"] =  it->second.config_flags_target;
         
-        json_file = Json::writeString(builder, root);
+        json_file = Json::FastWriter().write(root);
         payload_len_ = json_file.length() + 1;
 
         if (payload_len_ < MAX_PAYLOAD_SIZE)
         {
-          strcpy(payload_, json_file.c_str());
+          strcpy((char *)payload_, json_file.c_str());
           
-          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          if ( mqtt_client_->publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
           {
             CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
             return false;
@@ -423,7 +420,7 @@ namespace c5gopen
       for (  std::map<size_t,c5gopen::RobotGenericArray>::iterator it=robot_motor_current_log_.begin(); it!=robot_motor_current_log_.end(); it++ )
       {
         Json::Value root;
-        Json::StreamWriterBuilder builder;
+        //Json::StreamWriterBuilder builder;
         std::string json_file;
         char jnt_name[10];
 
@@ -454,17 +451,17 @@ namespace c5gopen
         for (size_t idx=0; idx<ORL_MAX_AXIS; idx++)
         {
           sprintf(jnt_name,"J%d",idx+1); 
-          root[jnt_name] =  it->second.target_vel[idx];
+          root[jnt_name] =  it->second.value[idx];
         }
         
-        json_file = Json::writeString(builder, root);
+        json_file = Json::FastWriter().write(root);
         payload_len_ = json_file.length() + 1;
 
         if (payload_len_ < MAX_PAYLOAD_SIZE)
         {
-          strcpy(payload_, json_file.c_str());
+          strcpy((char *)payload_, json_file.c_str());
           
-          if ( publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
+          if ( mqtt_client_->publish(payload_, payload_len_, topic_name_) != MOSQ_ERR_SUCCESS )
           {
             CNR_ERROR( logger_, "Error while publishing the topic " << topic_name_ );  
             return false;
@@ -515,7 +512,7 @@ namespace c5gopen
 
   bool C5GOpenMQTT::subscribeTopic( const std::string& sub_topic_name )
   {
-    if ( subscribe( NULL, sub_topic_name.c_str(), 1 ) != MOSQ_ERR_SUCCESS )
+    if ( mqtt_client_->subscribe( NULL, sub_topic_name.c_str(), 1 ) != MOSQ_ERR_SUCCESS )
       return false;
 
     CNR_INFO(logger_, "Subscribed topic: " << sub_topic_name.c_str() );
@@ -535,10 +532,10 @@ namespace c5gopen
     {
       Clock::time_point start_time_sub = Clock::now();
 
-      if (loop(loop_timeout) != MOSQ_ERR_SUCCESS)
+      if (mqtt_client_->loop(loop_timeout) != MOSQ_ERR_SUCCESS)
         return false;
       
-      std::map<std::string,c5gopen::RobotJointState> last_messages = drapebot_msg_decoder_->getLastReceivedMessage( );
+      std::map<std::string,c5gopen::RobotJointState> last_messages = c5gopen_msg_decoder_->getLastReceivedMessage( );
 
       for (auto it=last_messages.begin(); it!=last_messages.end(); it++)
       {

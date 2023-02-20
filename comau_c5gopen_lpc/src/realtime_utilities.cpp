@@ -58,7 +58,6 @@ namespace realtime_utilities
     param.sched_priority = prio;
     if (sched_setscheduler(0, sched, &param) < 0)
     {
-      //ROS_ERROR("sched_setscheduler");
       return false;
     }
     return true;

@@ -69,7 +69,12 @@ namespace cnr
                             const std::shared_ptr<cnr_logger::TraceLogger>& logger ):
                             logger_(logger)   
     {
-      //delta_time_.set_capacity(LOG_SAMPLES);
+       
+      if (msg_decoder == NULL)
+        throw std::runtime_error("NULL pointer to message decoder object.");
+
+      if (cnr::mqtt::init_library( msg_decoder ) < 0)
+        throw std::runtime_error("Cannot initialize the encoder and decoder library.");
 
       /* Required before calling other mosquitto functions */
       mosquitto_lib_init();
