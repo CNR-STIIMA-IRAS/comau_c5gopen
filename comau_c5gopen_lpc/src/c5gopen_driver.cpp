@@ -50,7 +50,7 @@
 namespace c5gopen
 {
   C5GOpenDriver* g_driver;
-
+   
   void initDriverLibrary(C5GOpenDriver* c5gopen_driver)
   {
     g_driver = c5gopen_driver;
@@ -349,6 +349,10 @@ namespace c5gopen
       std::raise(SIGINT);
       return;
     }
+    else
+    {
+      CNR_INFO( *logger_, "Set realtime scheduling properties.");
+    }
 #endif
 
     c5gopen_threads_status_ = thread_status::RUNNING;
@@ -421,13 +425,14 @@ namespace c5gopen
     // Enter in the infinite loop
     while ( !std::all_of( flag_ExitFromOpen_.begin(), flag_ExitFromOpen_.end(), [](const std::pair<size_t, bool>& flag){ return flag.second; } ) )
     {
+      c5gopen::tic(logger_,0);
       if ( ORLOPEN_GetPowerlinkState(ORL_SILENT) != PWL_ACTIVE )
       {
         for ( const size_t& active_arm : active_arms_ )
           setExitFromOpen( active_arm );
       }
-      
-      std::this_thread::sleep_for(std::chrono::milliseconds(100)); // need to use varibale to set sleep_for function
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
+      c5gopen::tic(logger_,1);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -455,7 +460,8 @@ namespace c5gopen
       {
         CNR_WARN( *logger_, "Error while updating the robot state." );
       }  
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1)); // load the parameter from config file
+      CNR_DEBUG_THROTTLE( *logger_, 5, "loggingThread alive." );
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));

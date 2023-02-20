@@ -39,13 +39,13 @@ set(Mosquitto_LIBRARIES mosquitto)
 include_directories(include
                     ${Boost_INCLUDE_DIRS}
                     ${YAML_CPP_INCLUDE_DIRS}
-                    #${Mosquitto_INCLUDE_DIRS}  
+                    #${Mosquitto_INCLUDE_DIRS}
                     /opt/inc/
                     )
 
 link_directories( ${Boost_LIBRARY_DIR} 
                   ${YAML_CPP_LIBRARY_DIR} )
-                  #${Mosquitto_LIBRARY_DIR}  )                
+                  #${Mosquitto_LIBRARY_DIR} )                
 
 
 if(EXISTS "/opt/inc/eORL.h")

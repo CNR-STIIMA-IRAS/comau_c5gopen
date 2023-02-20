@@ -37,9 +37,6 @@
 
 #include <fstream>
 
-#include <cnr_logger/cnr_logger.h>
-#include <cnr_logger/cnr_logger_macros.h>
-
 #include <comau_c5gopen_lpc/c5gopen_mqtt.h>
 #include <comau_c5gopen_lpc/c5gopen_driver.h>
 #include <comau_c5gopen_lpc/c5gopen_utilities.h>
@@ -128,6 +125,8 @@ int  main (int argc, char **argv)
 
         if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver,  c5gopen_cfg.mqtt_cfg_.mqtt_timeout_ ))
           CNR_WARN( logger, "Can't update robot target trajectory.");
+
+        CNR_DEBUG_THROTTLE( logger, 5, "Main node alive." );
       }
       else
       {
@@ -142,7 +141,7 @@ int  main (int argc, char **argv)
         if (!iot_client->publishData( c5gopen_driver ))
           CNR_WARN( logger, "Can't publish data to MQTT broker.");
         
-        if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver ))
+        if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver, c5gopen_cfg.mqtt_cfg_.mqtt_timeout_ ))
           CNR_WARN( logger, "Can't update robot target trajectory.");
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
