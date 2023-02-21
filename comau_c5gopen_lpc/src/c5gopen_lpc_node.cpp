@@ -70,21 +70,7 @@ int  main (int argc, char **argv)
 
   try
   {
-    // ************************************************
-    // Create the MQTT client
-    // ************************************************
-    std::unique_ptr<c5gopen::C5GOpenMQTT> iot_client( new c5gopen::C5GOpenMQTT( c5gopen_cfg.mqtt_cfg_.mqtt_client_id_.c_str(),
-                                                                                c5gopen_cfg.mqtt_cfg_.mqtt_broker_address_.c_str(),
-                                                                                c5gopen_cfg.mqtt_cfg_.mqtt_port_,
-                                                                                logger) ) ;
-
-    CNR_INFO( logger, "Created iot_client.");
-
-    for (const std::string& topic: c5gopen_cfg.mqtt_cfg_.mqtt_sub_topics_)
-    {
-      if (!iot_client->subscribeTopic( topic.c_str() )) 
-        CNR_ERROR( logger, "Can't subscribe topic: " << topic.c_str() << " from MQTT broker");
-    }
+    
 
     // ************************************************
     // Create, initialize and run C5GOpen driver  
@@ -109,29 +95,55 @@ int  main (int argc, char **argv)
 #endif
 
     // ************************************************
+    // Create the MQTT client
+    // ************************************************
+    if(!c5gopen_driver->getSystemInitialized())
+    {
+      CNR_ERROR( logger, "C5GOpen not initialized.");  
+      return -1;
+    }
+
+    std::unique_ptr<c5gopen::C5GOpenMQTT> iot_client( new c5gopen::C5GOpenMQTT( c5gopen_cfg.mqtt_cfg_.mqtt_client_id_.c_str(),
+                                                                                c5gopen_cfg.mqtt_cfg_.mqtt_broker_address_.c_str(),
+                                                                                c5gopen_cfg.mqtt_cfg_.mqtt_port_,
+                                                                                c5gopen_cfg.mqtt_cfg_.mqtt_timeout_,
+                                                                                c5gopen_driver,
+                                                                                logger) ) ;
+
+    CNR_INFO( logger, "Created iot_client.");
+
+
+
+    for (const std::string& topic: c5gopen_cfg.mqtt_cfg_.mqtt_sub_topics_)
+    {
+      if (!iot_client->subscribeTopic( topic.c_str() )) 
+        CNR_ERROR( logger, "Can't subscribe topic: " << topic.c_str() << " from MQTT broker");
+    }
+
+    // ************************************************
     // Enter in the infinite loop  
     // ************************************************
     CNR_INFO( logger, "Entering in the c5gopen_lpc_node infinite loop.");
 
 #ifndef C5GOPEN_NOT_ENABLED
-    while(c5gopen_driver->getC5GOpenThreadsStatus() != c5gopen::thread_status::CLOSED ||
-          c5gopen_driver->getComThreadsStatus() != c5gopen::thread_status::CLOSED || 
-          c5gopen_driver->getLoopConsoleThreadsStatus() != c5gopen::thread_status::CLOSED )
+    while(  c5gopen_driver->getC5GOpenThreadsStatus() != c5gopen::thread_status::CLOSED ||
+            c5gopen_driver->getComThreadsStatus() != c5gopen::thread_status::CLOSED || 
+            c5gopen_driver->getLoopConsoleThreadsStatus() != c5gopen::thread_status::CLOSED )
     {
-      if(iot_client && c5gopen_driver->getSystemInitialized())
-      {
-        if (!iot_client->publishData( c5gopen_driver ))
-          CNR_WARN( logger, "Can't publish data to MQTT broker.");     
+      // if(iot_client && c5gopen_driver->getSystemInitialized())
+      // {
+        // if (!iot_client->publishData( c5gopen_driver ))
+        //   CNR_WARN( logger, "Can't publish data to MQTT broker.");     
 
-        if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver,  c5gopen_cfg.mqtt_cfg_.mqtt_timeout_ ))
-          CNR_WARN( logger, "Can't update robot target trajectory.");
+        // if (!iot_client->updateRobotTargetTrajectory( c5gopen_driver,  c5gopen_cfg.mqtt_cfg_.mqtt_timeout_ ))
+        //   CNR_WARN( logger, "Can't update robot target trajectory.");
+      //}
+      // else
+      // {
+      //   std::this_thread::sleep_for(std::chrono::microseconds((int64_t) c5gopen::get_c5gopen_period_in_usec(c5gopen_cfg.c5gopen_driver_cfg_.c5gopen_period_orl_)));
+      // }
 
-        CNR_DEBUG_THROTTLE( logger, 5, "Main node alive." );
-      }
-      else
-      {
-        std::this_thread::sleep_for(std::chrono::microseconds((int64_t) c5gopen::get_c5gopen_period_in_usec(c5gopen_cfg.c5gopen_driver_cfg_.c5gopen_period_orl_)));
-      }
+      CNR_DEBUG_THROTTLE( logger, 5, "Main node alive." );
     }
 #else
     while(1)

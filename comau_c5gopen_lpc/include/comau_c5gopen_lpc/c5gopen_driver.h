@@ -55,7 +55,7 @@
 #include <comau_c5gopen_lpc/realtime_buffer_utils.h>
 
 #define LAST_MESS 0
-#define TARGET_POS_MAX_BUFF_LEN 10000
+#define TARGET_POS_MAX_BUFF_LEN 5
 #define MAX_JNT_VEL_DEG_S 150 // [deg/s] to be acquired from robot controller
 #define SIZE_OF_DOUBLE 8
 
@@ -122,15 +122,13 @@ namespace c5gopen
     std::thread loop_console_thread_;
     std::shared_ptr<cnr_logger::TraceLogger> logger_;
 
-    thread_status c5gopen_threads_status_ = thread_status::BEFORE_RUN;
-    thread_status com_threads_status_ = thread_status::BEFORE_RUN;
-    thread_status loop_console_threads_status_ = thread_status::BEFORE_RUN;
+    thread_status c5gopen_thread_status_ = thread_status::BEFORE_RUN;
+    thread_status com_thread_status_ = thread_status::BEFORE_RUN;
+    thread_status loop_console_thread_status_ = thread_status::BEFORE_RUN;
 
     // C5GOpen internal control flags 
     std::map<size_t,bool> first_arm_driveon_;
-    std::map<size_t,bool> flag_RunningMove_; // to be verified if necessary
     std::map<size_t,bool> flag_ExitFromOpen_;
-    std::map<size_t,bool> trajectory_in_execution_; // To be verified if it is necessary
     std::map<size_t,bool> robot_movement_enabled_;
     std::map<size_t,size_t> modality_active_;
     std::map<size_t,size_t> modality_old_;
@@ -139,7 +137,8 @@ namespace c5gopen
     std::map<size_t,ORL_cartesian_position> actual_cartesian_position_;
     std::map<size_t,ORL_joint_value>        last_jnt_target_rcv_;
 
-    std::map<size_t,realtime_buffer::CircBufferUnqPtr<RobotJointState>> absolute_target_jnt_position_;
+    std::map<size_t,RobotJointState> absolute_target_jnt_position_;
+    std::map<size_t,realtime_buffer::CircBufferUnqPtr<RobotJointState>> circ_absolute_target_jnt_position_;
  
     // Data structure for logging
     std::map<size_t,RobotJointState>          robot_joint_state_link_log_;

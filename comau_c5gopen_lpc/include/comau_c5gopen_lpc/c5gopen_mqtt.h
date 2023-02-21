@@ -66,21 +66,33 @@ namespace c5gopen
     uint32_t payload_len_ = 0;
     std::string topic_name_;
 
+    size_t loop_timeout_;
+
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::microseconds microsec;
 
+    std::shared_ptr<c5gopen::C5GOpenDriver> c5gopen_driver_;
     std::shared_ptr<cnr_logger::TraceLogger> logger_;
 
     cnr::mqtt::MQTTClient* mqtt_client_; 
     c5gopen::C5GOpenMsgDecoder* c5gopen_msg_decoder_;
+
+    std::thread mqtt_thread_;
+    thread_status mqtt_thread_status_ = thread_status::BEFORE_RUN; 
+
+    void MQTTThread( );
+    thread_status C5GOpenMQTT::getMQTTThreadsStatus();
       
   public:
-    C5GOpenMQTT (const char *id, const char *host, int port, const std::shared_ptr<cnr_logger::TraceLogger>& logger); 
+    C5GOpenMQTT ( const char *id, const char *host, int port, 
+                  const std::string& loop_timeout,
+                  const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver,
+                  const std::shared_ptr<cnr_logger::TraceLogger>& logger); 
     ~C5GOpenMQTT(); 
 
-    bool publishData( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver );
+    bool publishData( );
     bool subscribeTopic( const std::string& sub_topic_name );
-    bool updateRobotTargetTrajectory( const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver, const size_t& loop_timeout );
+    bool updateRobotTargetTrajectory( );
   }; 
 
 } // end namespace
