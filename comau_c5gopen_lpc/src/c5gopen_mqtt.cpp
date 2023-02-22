@@ -79,22 +79,35 @@ namespace c5gopen
       // The absolute trajectory need to be in degree
       joint_positions.target_pos.unit_type = ORL_POSITION_LINK_DEGREE;
 
+      mqtt_mtx_.lock();
       last_received_msg_[std::string(msg->topic)] = joint_positions;
     
+      new_message_available_ = true;
+      mqtt_mtx_.unlock();
+
       delete[] buffer;
     }
     
     mtx_mqtt_.unlock();
   }
-    
+
+  bool C5GOpenMsgDecoder::isNewMessageAvailable()
+  {
+    return new_message_available_;
+  }
+
   std::map<std::string,c5gopen::RobotJointState> C5GOpenMsgDecoder::getLastReceivedMessage()
   {
+    mqtt_mtx_.lock();
+    new_message_available_ = false;
+    mqtt_mtx_.unlock();
+    
     return last_received_msg_;
   }
 
   C5GOpenMQTT::C5GOpenMQTT( const char *id, const char *host, int port,
-                            const std::string& loop_timeout,
-                            const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver 
+                            const size_t& loop_timeout,
+                            const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver,
                             const std::shared_ptr<cnr_logger::TraceLogger>& logger):
                             loop_timeout_(loop_timeout),
                             c5gopen_driver_(c5gopen_driver),
@@ -105,7 +118,7 @@ namespace c5gopen
       c5gopen_msg_decoder_ = new c5gopen::C5GOpenMsgDecoder();
       mqtt_client_ = new cnr::mqtt::MQTTClient(id, host, port, c5gopen_msg_decoder_, logger_);
 
-      mqtt_thread_ = std::thread(&c5gopen::C5GOpenDriver::MQTTThread, this); 
+      mqtt_thread_ = std::thread(&c5gopen::C5GOpenMQTT::MQTTThread, this); 
       mqtt_thread_.detach();
     }
     catch(const std::exception& e)
@@ -128,11 +141,11 @@ namespace c5gopen
             c5gopen_driver_->getComThreadsStatus() != c5gopen::thread_status::CLOSED || 
             c5gopen_driver_->getLoopConsoleThreadsStatus() != c5gopen::thread_status::CLOSED )
     {
-      if (!iot_client->publishData( ))
-       CNR_WARN( logger, "Can't publish data to MQTT broker.");     
+      if (!publishData( ))
+       CNR_WARN( *logger_, "Can't publish data to MQTT broker.");     
 
-      if (!iot_client->updateRobotTargetTrajectory( ))
-        CNR_WARN( logger, "Can't update robot target trajectory.");
+      if (!updateRobotTargetTrajectory( ))
+        CNR_WARN( *logger_, "Can't update robot target trajectory.");
       std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
 
@@ -475,24 +488,27 @@ namespace c5gopen
       if (mqtt_client_->loop(loop_timeout_) != MOSQ_ERR_SUCCESS)
         return false;
       
-      std::map<std::string,c5gopen::RobotJointState> last_messages = c5gopen_msg_decoder_->getLastReceivedMessage( );
-
-      for (auto it=last_messages.begin(); it!=last_messages.end(); it++)
+      if (c5gopen_msg_decoder_->isNewMessageAvailable())
       {
-        std::size_t found_arm = it->first.find("arm");
-        if ( found_arm == std::string::npos )
-          CNR_ERROR(logger_, "Cannot find 'arm' in the MQTT subscribed topic.");
+        std::map<std::string,c5gopen::RobotJointState> last_messages = c5gopen_msg_decoder_->getLastReceivedMessage( );
 
-        std::size_t found_delimiter = it->first.find("/",found_arm+1);
-        if ( found_delimiter == std::string::npos )
-          CNR_ERROR(logger_, "Cannot find delimiter '/' after 'arm' in the MQTT subscribed topic.");
+        for (auto it=last_messages.begin(); it!=last_messages.end(); it++)
+        {
+          std::size_t found_arm = it->first.find("arm");
+          if ( found_arm == std::string::npos )
+            CNR_ERROR(logger_, "Cannot find 'arm' in the MQTT subscribed topic.");
+
+          std::size_t found_delimiter = it->first.find("/",found_arm+1);
+          if ( found_delimiter == std::string::npos )
+            CNR_ERROR(logger_, "Cannot find delimiter '/' after 'arm' in the MQTT subscribed topic.");
+          
+          char arm_number[10] = {0};
+          it->first.copy(arm_number,found_delimiter-(found_arm+3),found_arm+3);
         
-        char arm_number[10] = {0};
-        it->first.copy(arm_number,found_delimiter-(found_arm+3),found_arm+3);
-      
-        size_t arm = atoi(std::string(arm_number).c_str());
+          size_t arm = atoi(std::string(arm_number).c_str());
 
-        c5gopen_driver_->setRobotJointAbsoluteTargetPosition(arm, it->second); 
+          c5gopen_driver_->setRobotJointAbsoluteTargetPosition(arm, it->second); 
+        }
       }
       
       static bool buff_full = false;

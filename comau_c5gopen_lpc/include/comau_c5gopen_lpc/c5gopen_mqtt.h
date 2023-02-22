@@ -53,10 +53,14 @@ namespace c5gopen
     
     // The method should be reimplemented on the base of the application
     void on_message(const struct mosquitto_message *msg) override;
+    bool isNewMessageAvailable();
     std::map<std::string,c5gopen::RobotJointState> getLastReceivedMessage( );
+
+    std::mutex mqtt_mtx_;
 
   private:
     std::map<std::string,c5gopen::RobotJointState> last_received_msg_;
+    bool new_message_available_;
   };
 
   class C5GOpenMQTT 
@@ -81,11 +85,10 @@ namespace c5gopen
     thread_status mqtt_thread_status_ = thread_status::BEFORE_RUN; 
 
     void MQTTThread( );
-    thread_status C5GOpenMQTT::getMQTTThreadsStatus();
-      
+
   public:
     C5GOpenMQTT ( const char *id, const char *host, int port, 
-                  const std::string& loop_timeout,
+                  const size_t& loop_timeout,
                   const std::shared_ptr<c5gopen::C5GOpenDriver>& c5gopen_driver,
                   const std::shared_ptr<cnr_logger::TraceLogger>& logger); 
     ~C5GOpenMQTT(); 
@@ -93,6 +96,7 @@ namespace c5gopen
     bool publishData( );
     bool subscribeTopic( const std::string& sub_topic_name );
     bool updateRobotTargetTrajectory( );
+    thread_status getMQTTThreadsStatus();
   }; 
 
 } // end namespace

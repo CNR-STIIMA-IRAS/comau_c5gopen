@@ -187,8 +187,7 @@ namespace cnr
       * necessary, until the user calls mosquitto_disconnect().
       */
 
-      CNR_INFO(logger_, "Time to publish message [ average / max ] us " );    
-      CNR_INFO(logger_, "[" << std::fixed << delta_pub_ << " / " << max_pub_ << " ] us" );
+      CNR_INFO(logger_, "Time to publish message [ average / max ] us : " << "[" << std::fixed << delta_pub_ << " / " << max_pub_ << " ] us" );    
       
       mosquitto_lib_cleanup();
     }
