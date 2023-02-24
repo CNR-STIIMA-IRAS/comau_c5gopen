@@ -1,6 +1,11 @@
 # c5gopen_lpc_node
 
-This package implements the node running on the C5GOPEN LPC. The node is a pure c++ applications without any dependencies from ROS and catkin tool.
+This package implements the node running on the C5GOPEN LPC. The node is a pure C++ application without any dependencies from ROS and catkin tool.
+At the current state, this package implements 2 C5GOPEN working mode:
+- LISTEN mode
+- ABSOLUTE mode
+
+The following instructions are referred to the use of the ABSOLUTE mode.
 
 The node has the role to:
 1. Deals with the eORL interface.
@@ -25,7 +30,7 @@ The package comau_c5gopen_lpc is developed and tested on:
 N.B. To transfer the file on the COMAU LPC from a remote PC scp -r ./<c5Gopen_folder_package> c5gopen@IP_OF_COMAU_LPC:/home/c5gopen/<YOUR_WS>
 
 
-# C5GOPEN MQTT publisher topics
+# C5GOPEN MQTT published topics
 
 Topics published by the c5gopen_lpc_node:
 - "robot/armXXX/real_joints_positions"
@@ -59,9 +64,9 @@ MQTT topics are published as JSON strings, the topics referred to joint values a
 ```
 
 
-# C5GOPEN MQTT subscriber topics
+# C5GOPEN MQTT subscribed topic
 
-Topics subscribed by the c5gopen_lpc_node are defined in the configuration file cfg/c5gopen_cfg. The topic needs to be in the following JSON format:
+Topics subscribed by the c5gopen_lpc_node are defined in the configuration [config file](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/tree/master/comau_c5gopen_lpc/cfg). The topic needs to be in the following JSON format:
 ```
 {
   "J1" : 0.0, 
@@ -104,11 +109,13 @@ Example of usage:
 
 5) cd <user_path>/<your_ws>/src/comau_c5gopen/comau_c5gopen_lpc/launch 
 
-6) ./launch_c5gopen.sh
+6) ./launch_c5gopen.sh (when the C5GOPEN is activated the default working mode is the LISTEN mode)
 
 7) in **Automatic mode** push robot DRIVEON button (mandatory to update the eORL internal status), if the node is properly working robot will pass from DRIVEOFF to DRIVEON modality, otherwise it will return a "C5GOPEN communication error". In **Manual mode** keep pushing the deadman switch. **N.B. the C5GOpen mode works both with the robot in manual mode and in automatic mode**
 
-8) press the START (green) button on the robot Tech Pendant to run the PDL program activated at step 4.
+8) press the START (green) button on the robot Tech Pendant to run the PDL program activated at step 4. **N.B. at the current state, it is supported only the JOINT ABSOLUTE mode** 
+
+9) Once the ABSOLUTE mode is activated the user can provide trajectories to the comau_c5gopen_lpc node through an MQTT message. The trajectory can be published on the topic robot/arm1/target_joints_trajectory (see the [config file](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/tree/master/comau_c5gopen_lpc/cfg) to change the topic name) as a streaming of robot absolute joint positions.
 
 
 **N.B. The LPC non-real time ETH need to be connected in a switch with the service port of the B&R ACOPOS**
