@@ -100,7 +100,7 @@ Example of usage:
 
 3) sudo su (pass: c5gopen)
 
-4) activate the proper PDL program on robot Teach Pendant to switch between C5Gopen modalities (LISTEN (mod 0) - ABSOLUTE (mod 4) - RELATIVE (mod 5) - ADDITIVE (mod 7++)), default modality @ robot DRIVEON is: LISTEN. Examples of PDL programs are provided by COMAU in the folder [https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/tree/master/comau_c5gopen_lpc/PDL](#PDL) **N.B. For the first trial use the LISTEN mode** 
+4) activate the proper PDL program on robot Teach Pendant to switch between C5Gopen modalities (LISTEN (mod 0) - ABSOLUTE (mod 4) - RELATIVE (mod 5) - ADDITIVE (mod 7++)), default modality @ robot DRIVEON is: LISTEN. Examples of PDL programs are provided by COMAU in the folder [PDL](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/tree/master/comau_c5gopen_lpc/PDL) **N.B. For the first trial use the LISTEN mode** 
 
 5) cd <user_path>/<your_ws>/src/comau_c5gopen/comau_c5gopen_lpc/launch 
 
