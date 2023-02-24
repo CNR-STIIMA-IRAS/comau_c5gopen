@@ -40,15 +40,43 @@ Example to read the topic:
 
 mosquitto_sub -h BROKER_IP_ADDRESS -t robot/arm1/target_joints_trajectory
 
+MQTT topics are published as JSON strings, the topics referred to joint values are in the form:
+
+{
+  "J1" : 0.0, 
+  "J2" : 0.0,
+  "J3" : 0.0,
+  "J4" : 0.0,
+  "J5" : 0.0,
+  "J6" : 0.0,
+  "J7" : 0.0,
+  "J8" : 0.0,
+  "J9" : 0.0,
+  "J10" : 0.0,
+  "time" : 123456789123456789
+}
+
 
 
 # C5GOPEN MQTT subscriber topics
 
-Topics subscribed by the c5gopen_lpc_node are defined in the configuration file cfg/c5gopen_cfg, an example to publish a topic with mosquitto_pub is:
+Topics subscribed by the c5gopen_lpc_node are defined in the configuration file cfg/c5gopen_cfg. The topic needs to be in the following JSON format:
+{
+  "J1" : 0.0, 
+  "J2" : 0.0,
+  "J3" : 0.0,
+  "J4" : 0.0,
+  "J5" : 0.0,
+  "J6" : 0.0,
+  "J7" : 0.0,
+  "J8" : 0.0,
+  "J9" : 0.0,
+  "J10" : 0.0
+}
 
-mosquitto_pub -h BROKER_IP_ADDRESS -t robot/arm3/target_joints_trajectory -m "123.4567123.4567123.4567123.4567123.4567123.4567123.4567123.4567123.4567123.4567" --repeat 1000 --repeat-delay 1
+Example to read the topic:
 
-N.B: the c5gopen_lpc_node expects a 80bytes of mosquitto payload, 8bytes for 10 joints as in the example above.
+mosquitto_pub -h <BROKER_IP_ADDRESS> -t robot/arm1/target_joints_trajectory -m "{\"J1\" : 0.0, \"J2\" : 0.0, \"J3\" : 0.0, \"J4\" : 0.0, \"J5\" : 0.0, \"J6\" : 0.0, \"J7\" : 0.0, \"J8\" : 0.0, \"J9\" : 0.0, \"J10\" : 0.0 }"  --repeat NUMB_REPETITIONS --repeat-delay DELAY_IN_MS
 
 
 # Dependencies
@@ -56,6 +84,7 @@ N.B: the c5gopen_lpc_node expects a 80bytes of mosquitto payload, 8bytes for 10 
 - Boost
 - cnr_logger (https://github.com/CNR-STIIMA-IRAS/cnr_logger)
 - mosquitto 
+- jsoncpp
 
 
 # Usage
