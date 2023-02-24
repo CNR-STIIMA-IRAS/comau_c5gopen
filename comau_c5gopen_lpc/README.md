@@ -105,7 +105,7 @@ Example of usage:
 
 3) sudo su (pass: c5gopen)
 
-4) activate the proper PDL program on robot Teach Pendant to switch between C5Gopen modalities (LISTEN (mod 0) - ABSOLUTE (mod 4) - RELATIVE (mod 5) - ADDITIVE (mod 7++)), default modality @ robot DRIVEON is: LISTEN. Examples of PDL programs are provided by COMAU in the folder [PDL](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/tree/master/comau_c5gopen_lpc/PDL) **N.B. For the first trial use the LISTEN mode** 
+4) activate the proper PDL program on robot Teach Pendant to switch between C5Gopen modalities (LISTEN (mod 0) - ABSOLUTE (mod 4) - RELATIVE (mod 5) - ADDITIVE (mod 7++)), default modality @ robot DRIVEON is: LISTEN. Examples of PDL programs are provided by COMAU in the folder [PDL](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/blob/master/comau_c5gopen_lpc/cfg/c5gopen_cfg.yaml) **N.B. For the first trial use the LISTEN mode** 
 
 5) cd <user_path>/<your_ws>/src/comau_c5gopen/comau_c5gopen_lpc/launch 
 
@@ -115,7 +115,7 @@ Example of usage:
 
 8) press the START (green) button on the robot Tech Pendant to run the PDL program activated at step 4. **N.B. at the current state, it is supported only the JOINT ABSOLUTE mode** 
 
-9) Once the ABSOLUTE mode is activated the user can provide trajectories to the comau_c5gopen_lpc node through an MQTT message. The trajectory can be published on the topic robot/arm1/target_joints_trajectory (see the [config file](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/tree/master/comau_c5gopen_lpc/cfg) to change the topic name) as a streaming of robot absolute joint positions.
+9) Once the ABSOLUTE mode is activated the user can provide trajectories to the comau_c5gopen_lpc node through an MQTT message. The trajectory can be published on the topic robot/arm1/target_joints_trajectory (see the [config file](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/blob/master/comau_c5gopen_lpc/cfg/c5gopen_cfg.yaml) to change the topic name) as a streaming of robot absolute joint positions.
 
 
 **N.B. The LPC non-real time ETH need to be connected in a switch with the service port of the B&R ACOPOS**
