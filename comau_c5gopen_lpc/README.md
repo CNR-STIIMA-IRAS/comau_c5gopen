@@ -37,11 +37,12 @@ Topics published by the c5gopen_lpc_node:
 - "robot/armXXX/motor_currents"
 
 Example to read the topic:
-
+```
 mosquitto_sub -h BROKER_IP_ADDRESS -t robot/arm1/target_joints_trajectory
+```
 
 MQTT topics are published as JSON strings, the topics referred to joint values are in the form:
-
+```
 {
   "J1" : 0.0, 
   "J2" : 0.0,
@@ -55,12 +56,13 @@ MQTT topics are published as JSON strings, the topics referred to joint values a
   "J10" : 0.0,
   "time" : 123456789123456789
 }
-
+```
 
 
 # C5GOPEN MQTT subscriber topics
 
 Topics subscribed by the c5gopen_lpc_node are defined in the configuration file cfg/c5gopen_cfg. The topic needs to be in the following JSON format:
+```
 {
   "J1" : 0.0, 
   "J2" : 0.0,
@@ -73,11 +75,12 @@ Topics subscribed by the c5gopen_lpc_node are defined in the configuration file 
   "J9" : 0.0,
   "J10" : 0.0
 }
+```
 
 Example to read the topic:
-
+```
 mosquitto_pub -h <BROKER_IP_ADDRESS> -t robot/arm1/target_joints_trajectory -m "{\"J1\" : 0.0, \"J2\" : 0.0, \"J3\" : 0.0, \"J4\" : 0.0, \"J5\" : 0.0, \"J6\" : 0.0, \"J7\" : 0.0, \"J8\" : 0.0, \"J9\" : 0.0, \"J10\" : 0.0 }"  --repeat NUMB_REPETITIONS --repeat-delay DELAY_IN_MS
-
+```
 
 # Dependencies
 
