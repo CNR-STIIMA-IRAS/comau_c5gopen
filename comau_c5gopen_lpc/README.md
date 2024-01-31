@@ -127,6 +127,6 @@ This package is under heavy development huge changes can happen.
 
 
 # CONTACT
-Enrico Villagrossi: enrico.villagrossi@stiima.cnr.it
+Enrico Villagrossi: enrico.villagrossi@cnr.it
 
 
