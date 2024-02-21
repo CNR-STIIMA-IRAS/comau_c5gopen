@@ -90,10 +90,21 @@ mosquitto_pub -h <BROKER_IP_ADDRESS> -t robot/arm1/target_joints_trajectory -m "
 # Dependencies
 
 - Boost
-- cnr_logger (https://github.com/CNR-STIIMA-IRAS/cnr_logger)
-- mosquitto 
-- jsoncpp
 
+- cnr_logger 
+```
+(https://github.com/CNR-STIIMA-IRAS/cnr_logger)
+```
+
+- mosquitto 
+```
+sudo apt install libmosquitto0-dev
+```
+
+- jsoncpp
+```
+sudo apt-get install libjsoncpp-dev
+```
 
 # Usage
 
