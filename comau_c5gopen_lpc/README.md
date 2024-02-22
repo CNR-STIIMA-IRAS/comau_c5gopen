@@ -22,7 +22,7 @@ The package comau_c5gopen_lpc is developed and tested on:
 # How to run the c5gopen_lpc_node
 - install the eORL library (the eORL version 2.42.7 is supported)
 - download the package
-- cd comau_c5gopen
+- cd comau_c5gopen/comau_c5gopen_lpc
 - mkdir build
 - cd build
 - cmake ..
