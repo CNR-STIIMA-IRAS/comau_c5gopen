@@ -22,6 +22,7 @@ The package comau_c5gopen_lpc is developed and tested on:
 # How to run the c5gopen_lpc_node
 - install the eORL library (the eORL version 2.42.7 is supported)
 - download the package
+- cd comau_c5gopen
 - mkdir build
 - cd build
 - cmake ..
@@ -121,12 +122,13 @@ Example of usage:
 5) cd <user_path>/<your_ws>/src/comau_c5gopen/comau_c5gopen_lpc/launch 
 
 6) ./launch_c5gopen.sh (when the C5GOPEN is activated the default working mode is the LISTEN mode)
+**N.B. If necessary, adjust the paths contained in the file launch_c5gopen.sh according to the local path**
 
-7) in **Automatic mode** push robot DRIVEON button (mandatory to update the eORL internal status), if the node is properly working robot will pass from DRIVEOFF to DRIVEON modality, otherwise it will return a "C5GOPEN communication error". In **Manual mode** keep pushing the deadman switch. **N.B. the C5GOpen mode works both with the robot in manual mode and in automatic mode**
+8) in **Automatic mode** push robot DRIVEON button (mandatory to update the eORL internal status), if the node is properly working robot will pass from DRIVEOFF to DRIVEON modality, otherwise it will return a "C5GOPEN communication error". In **Manual mode** keep pushing the deadman switch. **N.B. the C5GOpen mode works both with the robot in manual mode and in automatic mode**
 
-8) press the START (green) button on the robot Tech Pendant to run the PDL program activated at step 4. **N.B. at the current state, it is supported only the JOINT ABSOLUTE mode** 
+9) press the START (green) button on the robot Tech Pendant to run the PDL program activated at step 4. **N.B. at the current state, it is supported only the JOINT ABSOLUTE mode** 
 
-9) Once the ABSOLUTE mode is activated the user can provide trajectories to the comau_c5gopen_lpc node through an MQTT message. The trajectory can be published on the topic robot/arm1/target_joints_trajectory (see the [config file](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/blob/master/comau_c5gopen_lpc/cfg/c5gopen_cfg.yaml) to change the topic name) as a streaming of robot absolute joint positions.
+10) Once the ABSOLUTE mode is activated the user can provide trajectories to the comau_c5gopen_lpc node through an MQTT message. The trajectory can be published on the topic robot/arm1/target_joints_trajectory (see the [config file](https://github.com/CNR-STIIMA-IRAS/comau_c5gopen/blob/master/comau_c5gopen_lpc/cfg/c5gopen_cfg.yaml) to change the topic name) as a streaming of robot absolute joint positions.
 
 
 **N.B. The LPC non-real time ETH need to be connected in a switch with the service port of the B&R ACOPOS**
