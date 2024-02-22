@@ -22,6 +22,7 @@ The package comau_c5gopen_lpc is developed and tested on:
 # How to run the c5gopen_lpc_node
 - install the eORL library (the eORL version 2.31.13 is supported)
 - download the package
+- cd comau_c5gopen/comau_c5gopen_lpc
 - mkdir build
 - cd build
 - cmake ..
@@ -110,6 +111,7 @@ Example of usage:
 5) cd <user_path>/<your_ws>/src/comau_c5gopen/comau_c5gopen_lpc/launch 
 
 6) ./launch_c5gopen.sh (when the C5GOPEN is activated the default working mode is the LISTEN mode)
+  **N.B. If necessary, adjust the paths contained in the file launch_c5gopen.sh according to the local path**
 
 7) in **Automatic mode** push robot DRIVEON button (mandatory to update the eORL internal status), if the node is properly working robot will pass from DRIVEOFF to DRIVEON modality, otherwise it will return a "C5GOPEN communication error". In **Manual mode** keep pushing the deadman switch. **N.B. the C5GOpen mode works both with the robot in manual mode and in automatic mode**
 
