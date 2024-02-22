@@ -15,12 +15,12 @@ The package comau_c5gopen_lpc is developed and tested on:
 - Linux Mint 17.1 Rebecca 32bit (equivalent to Ubuntu 14.04.6 LTS) released on COMAU LPC
 - cmake 2.8.3
 - c++11
-- eORL version 2.42.7
+- eORL version 2.31.13
 
 
 
 # How to run the c5gopen_lpc_node
-- install the eORL library (the eORL version 2.42.7 is supported)
+- install the eORL library (the eORL version 2.31.13 is supported)
 - download the package
 - mkdir build
 - cd build

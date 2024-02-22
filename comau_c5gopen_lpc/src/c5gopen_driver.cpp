@@ -635,13 +635,19 @@ namespace c5gopen
         // Robot State joint velocity REAL    
         // *************************************************************************************
         robot_joint_state_motor_log_[active_arm].time_us = current_time;
-        if ( ORLOPEN_get_speed_measured_mr_per_step(&robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
+        // if ( ORLOPEN_get_speed_measured_mr_per_step(&robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
+        // {
+        //   ORLOPEN_get_speed_measured_mr_per_step(&robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+        //   CNR_ERROR( *logger_, "Error in ORLOPEN_get_speed_measured_mr_per_step.");
+        //   return false;
+        // }
+
+        if ( ORLOPEN_get_speed_measured_mrpm(&robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
-          ORLOPEN_get_speed_measured_mr_per_step(&robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
-          CNR_ERROR( *logger_, "Error in ORLOPEN_get_speed_measured_mr_per_step.");
+          ORLOPEN_get_speed_measured_mrpm(&robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+          CNR_ERROR( *logger_, "Error in ORLOPEN_get_speed_measured_mrpm.");
           return false;
         }
-        
         
         // *************************************************************************************
         // Robot State joint position TARGET    
@@ -666,11 +672,18 @@ namespace c5gopen
         // *************************************************************************************
         // Robot State joint velocity TARGET    
         // *************************************************************************************
-        robot_joint_state_motor_log_[active_arm].time_us = current_time;
-        if ( ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
+        // robot_joint_state_motor_log_[active_arm].time_us = current_time;
+        // if ( ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
+        // {
+        //   ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+        //   CNR_ERROR( *logger_, "Error in ORLOPEN_get_speed_target_mr_per_step.");
+        //   return NULL;
+        // }
+
+        if ( ORLOPEN_get_speed_target_mrpm( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_SILENT, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) ) < ORLOPEN_RES_OK )
         {
-          ORLOPEN_get_speed_target_mr_per_step( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
-          CNR_ERROR( *logger_, "Error in ORLOPEN_get_speed_target_mr_per_step.");
+          ORLOPEN_get_speed_target_mrpm( &robot_joint_state_motor_log_[active_arm].real_vel, &mask, LAST_MESS, ORL_VERBOSE, c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+          CNR_ERROR( *logger_, "Error in ORLOPEN_get_speed_target_mrpm.");
           return NULL;
         }
         
