@@ -31,21 +31,16 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
 
 ### Mosquitto
-#find_package(PkgConfig REQUIRED)
-#pkg_check_modules(Mosquitto REQUIRED IMPORTED_TARGET mosquitto)
-
 set(Mosquitto_LIBRARIES mosquitto)
 
 include_directories(include
                     ${Boost_INCLUDE_DIRS}
                     ${YAML_CPP_INCLUDE_DIRS}
-                    #${Mosquitto_INCLUDE_DIRS}
                     /opt/inc/
                     )
 
 link_directories( ${Boost_LIBRARY_DIR} 
-                  ${YAML_CPP_LIBRARY_DIR} )
-                  #${Mosquitto_LIBRARY_DIR} )                
+                  ${YAML_CPP_LIBRARY_DIR} )                
 
 
 if(EXISTS "/opt/inc/eORL.h")
@@ -86,7 +81,3 @@ if (EORL_AVAILABLE)
                                           pthread 
                                           eorl )    
 endif()
-
-
-
-
