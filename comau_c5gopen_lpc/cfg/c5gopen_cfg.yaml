@@ -18,4 +18,4 @@ mqtt:
   timeout: 1 #ms
 
 cnr_logger:
-  logger_cfg_file: /home/c5gopen/comau_devel_ws/src/comau_c5gopen/comau_c5gopen_lpc/cfg/log_cfg.yaml
+  logger_cfg_file: ../cfg/log_cfg.yaml
