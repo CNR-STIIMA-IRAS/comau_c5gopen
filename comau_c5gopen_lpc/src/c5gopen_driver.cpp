@@ -356,6 +356,8 @@ namespace c5gopen
 
     CNR_INFO( *logger_, "Starting C5Gopen thread... " );
     
+    CNR_INFO( *logger_, "Initializing controller IP: " << c5gopen_ip_ctrl_ << "  system ID: " << c5gopen_sys_id_ << " controller index: " << c5gopen_ctrl_idx_orl_);
+
     if( ORLOPEN_initialize_controller ( c5gopen_ip_ctrl_.c_str(), c5gopen_sys_id_.c_str(), ORL_SILENT, c5gopen_ctrl_idx_orl_ ) != ORLOPEN_RES_OK )
     {
       ORLOPEN_initialize_controller ( c5gopen_ip_ctrl_.c_str(), c5gopen_sys_id_.c_str(), ORL_VERBOSE, c5gopen_ctrl_idx_orl_ );

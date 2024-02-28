@@ -1,7 +1,7 @@
 c5gopen_ctrl:
-  ctrl_idx: 1 # allowed values: from 1 to 32  
-  ip_ctrl: 192.168.254.240 
-  sys_id: CNTRLC5G_2107987
+  ctrl_idx: 1 # allowed values: from 1 to 32
+  ip_ctrl: 10.7.7.240 # change according to the robot controller IP
+  sys_id: CNTRLC5G_2107987 # change according to the robot controller serial number
   period: 0.4 #[ms] allowed values are: 0.4 - 2.0 - 4.0 - 8.0 - 16.0 ]
   active_arms: [1]  # [1, 2, 3, 4]
 
@@ -12,7 +12,7 @@ robot_frames:
 
 mqtt:
   client_id: "Client_ID"
-  broker_address: "192.168.254.246"
+  broker_address: "10.7.7.246" # change according to the MQTT broker IP
   port: 1883
   sub_topics: ["robot/arm1/target_joints_trajectory"] # ["topic1", "topic2"]
   timeout: 1 #ms

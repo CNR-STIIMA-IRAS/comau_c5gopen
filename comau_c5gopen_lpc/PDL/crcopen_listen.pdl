@@ -1,0 +1,36 @@
+PROGRAM crcopen_listen &PA, NOHOLD, DETACH
+
+IMPORT 'crcopen_lib'
+VAR vi_modality, vi_bck_modality, vi_arm_idx, vi_timeout: INTEGER
+VAR vi_res : INTEGER
+VAR vs_modality : STRING[32]
+
+BEGIN
+  vi_timeout := 0
+  vi_modality := CRCOPEN_LISTEN
+  vi_arm_idx := 1
+
+   ru_crcopen_reset_modality(vi_arm_idx)
+
+  WRITE LUN_CRT (' Arm ', vi_arm_idx, ' SWITCHING TO modality ', ru_crcopen_decode_modality(vi_modality), NL)
+  
+  -- Enable Open Visual3D during simulation
+  BIT_SET($GLOOP_ALONG_1D[20], 7)
+
+  WRITE LUN_CRT ('Before entering in CYCLE', NL)	  
+	
+CYCLE
+
+  vi_res := ru_crcopen_set_modality(vi_arm_idx, 0x3F, vi_modality)
+  IF vi_res = 0 THEN
+    WRITE LUN_CRT (' Arm ', vi_arm_idx, ' modality ', ru_crcopen_decode_modality(vi_modality), NL)
+    DELAY 1000
+    ru_crcopen_wait_exit(vi_arm_idx, vi_timeout, TRUE)
+    DELAY 1000
+  ELSE
+    WRITE LUN_CRT (' END ', vi_res, NL)
+    RETURN
+  ENDIF
+  
+  DELAY 1000
+END crcopen_listen
