@@ -46,6 +46,7 @@ Example to read the topic:
 ```
 mosquitto_sub -h BROKER_IP_ADDRESS -t robot/arm1/target_joints_trajectory
 ```
+Alternatively, it is possible to use MQTT Explore, which is available for Windows and Ubuntu.
 
 MQTT topics are published as JSON strings, the topics referred to joint values are in the form:
 ```
