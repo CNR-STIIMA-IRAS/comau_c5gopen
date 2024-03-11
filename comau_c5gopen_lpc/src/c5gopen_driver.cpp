@@ -284,7 +284,7 @@ namespace c5gopen
 
     ORL_joint_value last_jnt_pos;
 
-    if ( g_driver->robot_movement_enabled_[arm] )
+    if ( g_driver->robot_movement_enabled_[arm] && !g_driver->circ_absolute_target_jnt_position_[arm]->empty() )
     {
       // Robot movement was already enabled so the delta is computed w.r.t 
       // the last point provided to the controller
