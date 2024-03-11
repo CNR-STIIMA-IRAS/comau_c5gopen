@@ -284,7 +284,7 @@ namespace c5gopen
 
     ORL_joint_value last_jnt_pos;
 
-    if ( g_driver->robot_movement_enabled_[arm] )
+    if ( g_driver->robot_movement_enabled_[arm] && !g_driver->circ_absolute_target_jnt_position_[arm]->empty() )
     {
       // Robot movement was already enabled so the delta is computed w.r.t 
       // the last point provided to the controller
@@ -821,18 +821,18 @@ namespace c5gopen
               }
               else
               {  
-                // CNR_INFO( g_driver->logger_, "ORLOPEN_sync_position Joint " 
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX1] << " " 
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX2] << " "
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX3] << " "
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX4] << " "
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX5] << " "
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX6] << " "
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX7] << " "
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX8] << " "
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX9] << " "
-                //             << g_driver->actual_joints_position_[active_arm].value[ORL_AX10] << " Unit type: "
-                //             << (int16_t)g_driver->actual_joints_position_[active_arm].unit_type );
+                CNR_INFO( g_driver->logger_, "ORLOPEN_sync_position Joint " 
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX1] << " " 
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX2] << " "
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX3] << " "
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX4] << " "
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX5] << " "
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX6] << " "
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX7] << " "
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX8] << " "
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX9] << " "
+                            << g_driver->actual_joints_position_[active_arm].value[ORL_AX10] << " Unit type: "
+                            << (int16_t)g_driver->actual_joints_position_[active_arm].unit_type );
 
                 int res = ORLOPEN_set_absolute_pos_target_degree( &g_driver->actual_joints_position_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
                 if ( res != ORLOPEN_RES_OK )
