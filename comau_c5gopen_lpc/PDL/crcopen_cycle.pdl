@@ -30,7 +30,6 @@ CYCLE
       vi_modality := CRCOPEN_LISTEN
   ENDSELECT
   
-  --vi_modality := CRCOPEN_POS_ABSOLUTE
   
   vi_arm_idx := 1
   MOVE ARM[vi_arm_idx] TO {0, 20, -90, 0, 60, 0}

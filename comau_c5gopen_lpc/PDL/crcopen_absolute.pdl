@@ -8,20 +8,21 @@ BEGIN
   vi_timeout := 0
   vi_modality := CRCOPEN_LISTEN
   
-  vi_enbl_addon_speed := 0   --enable speed addon 
-  vi_enbl_addon_current := 0   --enable current addon
-  
   vi_arm_idx := 1
   
   -- Enable Open Visual3D during simulation
   BIT_SET($GLOOP_ALONG_1D[20], 7)
   
   vi_modality := CRCOPEN_POS_ABSOLUTE
-  $ARM_OVR := 100
+  
+  $ARM_OVR := 10
+  
   --CYCLE
-  MOVE ARM[vi_arm_idx] TO {0, 0, -90, 0, 90, 0}
-  DELAY 1000
-  vi_res := ru_crcopen_set_modality(vi_arm_idx, 0x3F, vi_modality, vi_enbl_addon_speed, vi_enbl_addon_current)
+  -- MOVE ARM[vi_arm_idx] TO {0, 0, -90, 0, 90, 0}
+  -- DELAY 1000
+  
+  vi_res := ru_crcopen_set_modality(vi_arm_idx, 0x3F, vi_modality)
+  
   IF vi_res = 0 THEN
     WRITE LUN_CRT (' Arm ', vi_arm_idx, ' modality ', ru_crcopen_decode_modality(vi_modality), NL)
     DELAY 1000
