@@ -76,6 +76,7 @@ namespace c5gopen
       first_arm_driveon_.insert(std::make_pair(active_arm, false));
       flag_ExitFromOpen_.insert(std::make_pair(active_arm, false));
       robot_movement_enabled_.insert(std::make_pair(active_arm, false));
+      first_pos_abs_cycle_.insert(std::make_pair(active_arm, true));
       modality_active_.insert(std::make_pair(active_arm, CRCOPEN_LISTEN));
       modality_old_.insert(std::make_pair(active_arm, CRCOPEN_LISTEN));
 
@@ -83,6 +84,7 @@ namespace c5gopen
       memset(&joint_value_zero,0x0,sizeof(ORL_joint_value));
       actual_joints_position_.insert(std::make_pair(active_arm,joint_value_zero));
       last_jnt_target_rcv_.insert(std::make_pair(active_arm,joint_value_zero));
+      starting_abs_pos_.insert(std::make_pair(active_arm,joint_value_zero));
     
       ORL_cartesian_position cart_position_zero;
       memset(&cart_position_zero,0x0,sizeof(ORL_cartesian_position));
@@ -295,6 +297,12 @@ namespace c5gopen
       //Robot movement was not enabled yet
       //the actual joints position is used to compute the delta_jnt_position
       last_jnt_pos = actual_joints_position_[arm];
+    }
+
+    if( ORL_joints_conversion(&last_jnt_pos, ORL_POSITION_LINK_DEGREE, ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(arm)) < ORLOPEN_RES_OK )
+    {
+      ORL_joints_conversion(&last_jnt_pos, ORL_POSITION_LINK_DEGREE, ORL_VERBOSE, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(arm));
+      return false;
     }
 
 
@@ -783,6 +791,7 @@ namespace c5gopen
                 CNR_INFO(  g_driver->logger_, "Modality CRCOPEN_POS_ABSOLUTE activated. ARM: " << active_arm << " --> " << ( (arm_driveon == true) ? "DRIVEON" : "DRIVEOFF") );
                 g_driver->mtx_trj_.lock();
                 g_driver->robot_movement_enabled_[active_arm] = false;
+                g_driver->first_pos_abs_cycle_[active_arm] = true;
                 g_driver->mtx_trj_.unlock();
               }
             }
@@ -816,12 +825,27 @@ namespace c5gopen
 
                 int res = ORLOPEN_set_absolute_pos_target_degree( &g_driver->last_jnt_target_rcv_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
                 if ( res != ORLOPEN_RES_OK )
-                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." << ORL_decode_Error_Code(res) );
+                {
+                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree. " << ORL_decode_Error_Code(res) );
+                  return ORLOPEN_ERROR;  
+                }
                 
               }
               else
               {  
-                CNR_INFO( g_driver->logger_, "ORLOPEN_sync_position Joint " 
+                if (g_driver->first_pos_abs_cycle_[active_arm])
+                {
+                  g_driver->first_pos_abs_cycle_[active_arm] = false;
+                  g_driver->starting_abs_pos_[active_arm] = g_driver->actual_joints_position_[active_arm];
+                }
+
+                if( ORL_joints_conversion(&g_driver->starting_abs_pos_[active_arm], ORL_POSITION_LINK_DEGREE, ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm)) < ORLOPEN_RES_OK )
+                {
+                  ORL_joints_conversion(&g_driver->starting_abs_pos_[active_arm], ORL_POSITION_LINK_DEGREE, ORL_VERBOSE, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm)); 
+                }
+
+
+                CNR_INFO( g_driver->logger_, "Actual Joint Position " 
                             << g_driver->actual_joints_position_[active_arm].value[ORL_AX1] << " " 
                             << g_driver->actual_joints_position_[active_arm].value[ORL_AX2] << " "
                             << g_driver->actual_joints_position_[active_arm].value[ORL_AX3] << " "
@@ -832,12 +856,34 @@ namespace c5gopen
                             << g_driver->actual_joints_position_[active_arm].value[ORL_AX8] << " "
                             << g_driver->actual_joints_position_[active_arm].value[ORL_AX9] << " "
                             << g_driver->actual_joints_position_[active_arm].value[ORL_AX10] << " Unit type: "
-                            << (int16_t)g_driver->actual_joints_position_[active_arm].unit_type );
+                            << (int16_t)g_driver->actual_joints_position_[active_arm].unit_type << "  "
+                            << "first_pos_abs_cycle: " << g_driver->first_pos_abs_cycle_[active_arm] );
 
-                int res = ORLOPEN_set_absolute_pos_target_degree( &g_driver->actual_joints_position_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+                CNR_INFO( g_driver->logger_, "Starting Joint Position" 
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX1] << " " 
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX2] << " "
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX3] << " "
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX4] << " "
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX5] << " "
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX6] << " "
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX7] << " "
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX8] << " "
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX9] << " "
+                            << g_driver->starting_abs_pos_[active_arm].value[ORL_AX10] << " Unit type: "
+                            << (int16_t)g_driver->starting_abs_pos_[active_arm].unit_type << "  "
+                            << "first_pos_abs_cycle: " << g_driver->first_pos_abs_cycle_[active_arm] );
+
+                CNR_INFO( g_driver->logger_, "\n\n");  
+
+                //int res = ORLOPEN_set_absolute_pos_target_degree( &g_driver->actual_joints_position_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+                int res = ORLOPEN_set_absolute_pos_target_degree( &g_driver->starting_abs_pos_[active_arm], ORL_SILENT, g_driver->c5gopen_ctrl_idx_orl_, get_orl_arm_num(active_arm) );
+
                 if ( res != ORLOPEN_RES_OK )
-                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree." << ORL_decode_Error_Code(res) );
-                
+                {
+                  CNR_ERROR(  g_driver->logger_, "Error in ORLOPEN_set_absolute_pos_target_degree. " << ORL_decode_Error_Code(res) );
+                  return ORLOPEN_ERROR;  
+                }
+                                  
               }
             }
             
