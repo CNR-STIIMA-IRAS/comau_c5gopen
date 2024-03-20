@@ -280,7 +280,7 @@ namespace c5gopen
       return false;
     }       
 
-    double max_delta_jnt_pos_deg = MAX_JNT_VEL_DEG_S * get_c5gopen_period_in_usec(c5gopen_ctrl_idx_orl_) * pow(10,-6);
+    double max_delta_jnt_pos_deg = MAX_JNT_VEL_DEG_S * get_c5gopen_period_in_usec(c5gopen_period_orl_) * pow(10,-6);
 
     ORL_joint_value last_jnt_pos;
 
